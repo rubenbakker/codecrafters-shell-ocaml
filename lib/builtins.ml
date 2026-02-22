@@ -15,6 +15,7 @@ let type_ arg =
 let pwd () = Lwt_io.printl (Unix.getcwd ())
 
 let cd path =
+  let path = match path with "~" -> Unix.getenv "HOME" | _ -> path in
   if Stdlib.Sys.file_exists path && Stdlib.Sys.is_directory path then (
     Unix.chdir path;
     Lwt.return_unit)
