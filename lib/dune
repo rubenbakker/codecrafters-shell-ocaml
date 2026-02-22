@@ -1,7 +1,9 @@
-(include_subdirs unqualified)
+(include_subdirs no)
 
-(executable
- (name main)
- (libraries lib base lwt lwt.unix)
+(library
+ (name lib)
+ (libraries base lwt lwt.unix)
+ (inline_tests)
  (preprocess
   (pps ppx_assert ppx_inline_test ppx_expect ppx_sexp_conv ppx_compare ppx_let)))
+
