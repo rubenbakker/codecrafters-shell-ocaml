@@ -18,4 +18,6 @@ let full_path executable_name =
 let exec command args =
   match full_path command with
   | Some path -> Some (Unix.system (command :: args |> String.concat ~sep:" "))
-  | None -> None
+  | None ->
+      let%bind () = Lwt_io.printlf "%s: command not found" command in
+      None
