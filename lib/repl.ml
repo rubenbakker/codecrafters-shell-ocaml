@@ -14,6 +14,9 @@ let repl () =
     | [ "type"; arg ] ->
         let%bind () = Builtins.type_ arg in
         go ()
+    | command :: args ->
+        Executable.exec command args |> ignore;
+        go ()
     | _ ->
         let%bind () = Lwt_io.printlf "%s: command not found" line in
         go ()
