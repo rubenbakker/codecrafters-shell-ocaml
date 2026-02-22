@@ -11,6 +11,9 @@ let repl () =
     | "echo" :: rest ->
         let%bind () = Builtins.echo rest in
         go ()
+    | [ "type"; arg ] ->
+        let%bind () = Builtins.type_ arg in
+        go ()
     | _ ->
         let%bind () = Lwt_io.printlf "%s: command not found" line in
         go ()
