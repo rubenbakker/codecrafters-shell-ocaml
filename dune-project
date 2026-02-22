@@ -23,4 +23,5 @@
   ppx_inline_test
   ppx_sexp_conv
   ppx_hash
+  ppx_let
   ppx_compare))
