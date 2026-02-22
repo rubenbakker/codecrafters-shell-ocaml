@@ -3,7 +3,7 @@ open! Base
 let ( let* ) = Lwt.bind
 
 let repl () =
-    let* () = Lwt_io.printl "$ " in
+    let* () = Lwt_io.print "$ " in
     let* line = Lwt_io.read_line Lwt_io.stdin in
     Lwt_io.printlf "%s: command not found" line
 
