@@ -1,5 +1,4 @@
 open! Base
-open Lwt.Let_syntax
 
 let is_executable fullpath =
   try

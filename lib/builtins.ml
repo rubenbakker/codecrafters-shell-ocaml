@@ -10,3 +10,5 @@ let type_ arg =
       match Executable.full_path arg with
       | Some path -> Lwt_io.printlf "%s is %s" arg path
       | None -> Lwt_io.printlf "%s: not found" arg)
+
+let pwd () = Lwt_io.printl (Unix.getcwd ())

@@ -14,6 +14,9 @@ let repl () =
     | [ "type"; arg ] ->
         let%bind () = Builtins.type_ arg in
         go ()
+    | [ "pwd" ] ->
+        let%bind () = Builtins.pwd () in
+        go ()
     | command :: args ->
         Executable.exec command args |> ignore;
         go ()
