@@ -6,7 +6,7 @@ let is_executable fullpath =
     true
   with Unix.Unix_error _ -> false
 
-let full_path executable_name =
+let search_path executable_name =
   let path = Unix.getenv "PATH" |> String.split ~on:':' in
   List.map path ~f:(fun p ->
       let fullpath = Stdlib.Filename.concat p executable_name in
@@ -16,7 +16,7 @@ let full_path executable_name =
   |> List.filter_opt |> List.hd
 
 let exec command args =
-  match full_path command with
+  match search_path command with
   | Some path ->
       Unix.system (command :: args |> String.concat ~sep:" ") |> ignore;
       Lwt.return_unit

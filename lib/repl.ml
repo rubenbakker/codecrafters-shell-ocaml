@@ -17,6 +17,9 @@ let repl () =
     | [ "pwd" ] ->
         let%bind () = Builtins.pwd () in
         go ()
+    | [ "cd"; path ] ->
+        let%bind () = Builtins.cd path in
+        go ()
     | command :: args ->
         Executable.exec command args |> ignore;
         go ()
