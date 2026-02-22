@@ -1,4 +1,5 @@
 open! Base
+open Lwt.Let_syntax
 
 let is_executable fullpath =
   try
@@ -17,7 +18,7 @@ let full_path executable_name =
 
 let exec command args =
   match full_path command with
-  | Some path -> Some (Unix.system (command :: args |> String.concat ~sep:" "))
-  | None ->
-      let%bind () = Lwt_io.printlf "%s: command not found" command in
-      None
+  | Some path ->
+      Unix.system (command :: args |> String.concat ~sep:" ") |> ignore;
+      Lwt.return_unit
+  | None -> Lwt_io.printlf "%s: command not found" command
