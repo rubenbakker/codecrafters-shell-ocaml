@@ -5,7 +5,7 @@ let repl () =
     let open Lwt.Let_syntax in
     let%bind () = Lwt_io.print "$ " in
     let%bind line = Lwt_io.read_line Lwt_io.stdin in
-    let args = String.split ~on:' ' line in
+    let args = Cmdargs.parse line in
     match args with
     | "exit" :: [] -> Builtins.exit ()
     | "echo" :: rest ->
