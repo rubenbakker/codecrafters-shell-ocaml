@@ -3,16 +3,19 @@ open! Base
 type scanner_state_t = Normal | SingleQuote
 
 let rec scan state chars acc args =
+  let add_arg acc args = (List.rev acc |> String.of_char_list) :: args in
   match (state, chars) with
   | SingleQuote, '\'' :: '\'' :: rest -> scan SingleQuote rest acc args
-  | SingleQuote, '\'' :: rest -> scan Normal rest [] (acc :: args)
-  | SingleQuote, char :: rest ->
-      scan SingleQuote rest (char :: acc) (acc :: args)
+  | SingleQuote, '\'' :: rest -> scan Normal rest [] (add_arg acc args)
+  | SingleQuote, char :: rest -> scan SingleQuote rest (char :: acc) args
   | Normal, '\'' :: rest -> scan SingleQuote rest [] args
-  | Normal, char :: rest when Char.(char = ' ' || char = '\t') -> (
-      match acc with [] -> scan Normal rest acc args)
+  | Normal, char :: rest
+    when Char.(char = ' ' || char = '\t') && List.length acc > 0 ->
+      scan Normal rest [] (add_arg acc args)
+  | Normal, char :: rest when Char.(char = ' ' || char = '\t') ->
+      scan Normal rest acc args
   | Normal, char :: rest -> scan Normal rest (char :: acc) args
-  | _, [] -> List.rev (acc :: args)
+  | _, [] -> List.rev (if List.length acc > 0 then add_arg acc args else args)
 
 let parse line =
   scan Normal (line |> String.strip |> String.to_array |> Array.to_list) [] []
