@@ -21,7 +21,7 @@ let repl () =
         let%bind () = Builtins.cd path in
         go ()
     | command :: args ->
-        Executable.exec command args |> ignore;
+        let%bind () = Executable.exec command args in
         go ()
     | _ ->
         let%bind () = Lwt_io.printlf "%s: command not found" line in
