@@ -18,9 +18,10 @@ let search_path executable_name =
   |> List.filter_opt |> List.hd
 
 let exec (args : Cmdargs.t) =
-  Stdlib.print_endline (Sexp.to_string_hum (Cmdargs.sexp_of_t args));
+  Stdlib.prerr_endline (Sexp.to_string_hum (Cmdargs.sexp_of_t args));
   let%bind stdout = Cmdargs.with_stdout args.redirect in
   let command = List.hd_exn args.args in
+  Stdlib.prerr_endline command;
   match search_path command with
   | Some path -> (
       Lwt_process.exec ~stdout
