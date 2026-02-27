@@ -23,6 +23,6 @@ let exec command args =
       Lwt_process.exec
         (path, List.to_array (Stdlib.Filename.basename path :: args))
       >|= function
-      | WEXITED 0 -> ()
+      | WEXITED 0 -> Stdlib.print_newline ()
       | _ -> ())
   | None -> Lwt_io.printlf "%s: command not found" command
