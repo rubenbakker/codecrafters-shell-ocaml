@@ -31,10 +31,8 @@ let prepare_args args =
 let with_stdout filename =
   match filename with
   | Some filename ->
-      let%bind fd =
-        Lwt_unix.openfile filename [ O_CREAT; O_WRONLY; O_CLOEXEC ] 0
-      in
-      Lwt.return (`FD_move (Lwt_unix.unix_file_descr fd))
+      Lwt_unix.openfile filename [ O_CREAT; O_WRONLY; O_CLOEXEC ] 0
+      >|= fun fd -> `FD_move (Lwt_unix.unix_file_descr fd)
   | None -> Lwt.return `Keep
 
 let exec command args =
