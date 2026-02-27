@@ -1,5 +1,7 @@
 open! Base
+open Lwt.Infix
 
+type t = { args : string list; redirect : string option }
 type scanner_state_t = Normal | SingleQuote | DoubleQuote
 
 let rec scan state chars acc args =
@@ -38,5 +40,22 @@ let rec scan state chars acc args =
   | Normal, char :: rest -> scan Normal rest (char :: acc) args
   | _, [] -> List.rev (if List.length acc > 0 then add_arg acc args else args)
 
+let prepare_args args =
+  let rec loop args acc redirect =
+    match args with
+    | [] -> { args = List.rev acc; redirect }
+    | ">1" :: filename :: rest -> loop rest acc (Some filename)
+    | arg :: rest -> loop rest (arg :: acc) redirect
+  in
+  loop args [] None
+
 let parse line =
   scan Normal (line |> String.strip |> String.to_array |> Array.to_list) [] []
+  |> prepare_args
+
+let with_stdout filename =
+  match filename with
+  | Some filename ->
+      Lwt_unix.openfile filename [ O_CREAT; O_WRONLY; O_CLOEXEC ] 0
+      >|= fun fd -> `FD_move (Lwt_unix.unix_file_descr fd)
+  | None -> Lwt.return `Keep
