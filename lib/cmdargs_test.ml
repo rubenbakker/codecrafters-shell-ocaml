@@ -72,3 +72,22 @@ let%expect_test "cat files" =
     /tmp/owl/f   54
     /tmp/owl/f   92
   |}]
+
+let%expect_test "backslashes" =
+  let open Stdlib.Printf in
+  let args =
+    Cmdargs.parse
+      "cat /tmp/bee/'no slash 99' /tmp/bee/'one slash \41' /tmp/bee/'two \
+       slashes \84\'"
+  in
+  printf "arg count: %d\n\n" (List.length args);
+  String.concat ~sep:"\n" args |> Stdlib.print_endline |> ignore;
+  [%expect
+    {|
+    arg count: 4
+
+    cat 
+    /tmp/bee/'no slash 99' 
+    /tmp/bee/'one slash \41' 
+    /tmp/bee/'two slashes \84\'
+  |}]
