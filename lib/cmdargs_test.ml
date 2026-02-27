@@ -55,3 +55,20 @@ let%expect_test "adjacend single quotes" =
     w1    w2 test
     war
   |}]
+
+let%expect_test "cat files" =
+  let open Stdlib.Printf in
+  let args =
+    Cmdargs.parse "cat '/tmp/owl/f   56' '/tmp/owl/f   54' '/tmp/owl/f   92'"
+  in
+  printf "arg count: %d\n\n" (List.length args);
+  String.concat ~sep:"\n" args |> Stdlib.print_endline |> ignore;
+  [%expect
+    {|
+    arg count: 4  
+
+    cat
+    /tmp/owl/f   56
+    /tmp/owl/f   54
+    /tmp/owl/f   92
+  |}]

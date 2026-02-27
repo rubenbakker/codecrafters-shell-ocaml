@@ -18,6 +18,6 @@ let search_path executable_name =
 let exec command args =
   match search_path command with
   | Some path ->
-      Unix.system (command :: args |> String.concat ~sep:" ") |> ignore;
+      let _command = Lwt_process.open_process_full (path, List.to_array args) in
       Lwt.return_unit
   | None -> Lwt_io.printlf "%s: command not found" command
