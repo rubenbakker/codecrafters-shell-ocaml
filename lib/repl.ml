@@ -1,4 +1,5 @@
 open! Base
+open Lwt.Infix
 
 let repl () =
   let rec go () =
@@ -8,23 +9,11 @@ let repl () =
     let args = Cmdargs.parse line in
     match args with
     | "exit" :: [] -> Builtins.exit ()
-    | "echo" :: rest ->
-        let%bind () = Builtins.echo rest in
-        go ()
-    | [ "type"; arg ] ->
-        let%bind () = Builtins.type_ arg in
-        go ()
-    | [ "pwd" ] ->
-        let%bind () = Builtins.pwd () in
-        go ()
-    | [ "cd"; path ] ->
-        let%bind () = Builtins.cd path in
-        go ()
-    | command :: args ->
-        let%bind () = Executable.exec command args in
-        go ()
-    | _ ->
-        let%bind () = Lwt_io.printlf "%s: command not found" line in
-        go ()
+    | "echo" :: rest -> Builtins.echo rest >>= go
+    | [ "type"; arg ] -> Builtins.type_ arg >>= go
+    | [ "pwd" ] -> Builtins.pwd () >>= go
+    | [ "cd"; path ] -> Builtins.cd path >>= go
+    | command :: args -> Executable.exec command args >>= go
+    | _ -> Lwt_io.printlf "%s: command not found" line >>= go
   in
   go ()
