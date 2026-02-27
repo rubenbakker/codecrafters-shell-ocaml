@@ -14,6 +14,11 @@ let rec scan state chars acc args =
   | SingleQuote, char :: rest -> scan SingleQuote rest (char :: acc) args
   | DoubleQuote, '"' :: '"' :: rest -> scan DoubleQuote rest acc args
   | DoubleQuote, '"' :: rest -> scan Normal rest [] (add_arg acc args)
+  | DoubleQuote, '\\' :: char :: rest
+    when Char.(
+           char = '$' || char = '\\' || char = '"' || char = '`' || char = '\n')
+    ->
+      scan DoubleQuote rest (char :: acc) args
   | DoubleQuote, char :: rest -> scan DoubleQuote rest (char :: acc) args
   | Normal, '\'' :: '\'' :: rest -> scan Normal rest acc args
   | Normal, '\'' :: rest -> scan SingleQuote rest acc args
