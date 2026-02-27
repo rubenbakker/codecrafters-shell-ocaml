@@ -13,7 +13,7 @@ let repl () =
     | [ "type"; arg ] -> Builtins.type_ arg >>= go
     | [ "pwd" ] -> Builtins.pwd () >>= go
     | [ "cd"; path ] -> Builtins.cd path >>= go
-    | command :: _rest -> Executable.exec command args >>= go
+    | _command :: _rest -> Executable.exec args >>= go
     | _ -> Lwt_io.printlf "%s: command not found" line >>= go
   in
   go ()
