@@ -8,6 +8,7 @@ let rec scan state chars acc args =
   | SingleQuote, '\'' :: '\'' :: rest -> scan SingleQuote rest acc args
   | SingleQuote, '\'' :: rest -> scan Normal rest [] (add_arg acc args)
   | SingleQuote, char :: rest -> scan SingleQuote rest (char :: acc) args
+  | Normal, '\'' :: '\'' :: rest -> scan Normal rest acc args
   | Normal, '\'' :: rest -> scan SingleQuote rest [] args
   | Normal, char :: rest
     when Char.(char = ' ' || char = '\t') && List.length acc > 0 ->
