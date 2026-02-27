@@ -1,7 +1,17 @@
 open! Base
+open Lwt.Infix
 
 let exit () = Unix._exit 0
-let echo args = Lwt_io.printl (String.concat ~sep:" " args)
+
+let echo (args : Cmdargs.t) =
+  let output =
+    Stdlib.Printf.sprintf "%s" (String.concat ~sep:" " (List.tl_exn args.args))
+  in
+  match args.redirect with
+  | Some filename ->
+      Lwt_io.with_file filename ~mode:Lwt_io.Output (fun x ->
+          Lwt_io.write x output)
+  | None -> Lwt_io.printl output
 
 let type_ arg =
   match arg with

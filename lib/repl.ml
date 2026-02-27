@@ -9,7 +9,7 @@ let repl () =
     let args = Cmdargs.parse line in
     match args.args with
     | "exit" :: [] -> Builtins.exit ()
-    | "echo" :: rest -> Builtins.echo rest >>= go
+    | "echo" :: _rest -> Builtins.echo args >>= go
     | [ "type"; arg ] -> Builtins.type_ arg >>= go
     | [ "pwd" ] -> Builtins.pwd () >>= go
     | [ "cd"; path ] -> Builtins.cd path >>= go
