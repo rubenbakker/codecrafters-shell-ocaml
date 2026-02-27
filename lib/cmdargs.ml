@@ -14,6 +14,7 @@ let rec scan state chars acc args =
   | Normal, '\'' :: '\'' :: rest -> scan Normal rest acc args
   | Normal, '\'' :: rest -> scan SingleQuote rest [] args
   | Normal, '"' :: '"' :: rest -> scan Normal rest acc args
+  | Normal, '"' :: rest -> scan DoubleQuote rest [] args
   | Normal, char :: rest
     when Char.(char = ' ' || char = '\t') && List.length acc > 0 ->
       scan Normal rest [] (add_arg acc args)
