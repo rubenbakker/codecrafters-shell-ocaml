@@ -2,6 +2,8 @@ open! Base
 open Lwt.Infix
 
 type t = { args : string list; redirect : string option }
+[@@deriving sexp, compare, equal]
+
 type scanner_state_t = Normal | SingleQuote | DoubleQuote
 
 let rec scan state chars acc args =

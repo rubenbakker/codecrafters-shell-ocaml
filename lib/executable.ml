@@ -18,11 +18,13 @@ let search_path executable_name =
   |> List.filter_opt |> List.hd
 
 let exec (args : Cmdargs.t) =
+  Stdlib.print_endline (Sexp.to_string_hum (Cmdargs.sexp_of_t args));
   let%bind stdout = Cmdargs.with_stdout args.redirect in
   let command = List.hd_exn args.args in
   match search_path command with
   | Some path -> (
-      Lwt_process.exec ~stdout (path, List.to_array ("" :: args.args))
+      Lwt_process.exec ~stdout
+        (path, List.to_array (Stdlib.Filename.basename command :: args.args))
       >>= function
       | WEXITED 0 -> Lwt.return_unit
       | _ -> Lwt_io.printf "Error executing command.")
