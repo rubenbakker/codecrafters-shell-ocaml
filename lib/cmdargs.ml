@@ -16,7 +16,7 @@ let rec scan state chars acc args =
   | DoubleQuote, '"' :: '"' :: rest -> scan DoubleQuote rest acc args
   | DoubleQuote, '"' :: char :: rest
     when is_whitespace_char char && List.length acc > 0 ->
-      scan Normal rest [] (add_arg acc args)
+      scan Normal rest (char :: acc) args
   | DoubleQuote, '"' :: rest -> scan Normal rest [] (add_arg acc args)
   | DoubleQuote, '\\' :: char :: rest
     when Char.(
