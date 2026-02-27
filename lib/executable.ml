@@ -1,4 +1,5 @@
 open! Base
+open Lwt.Let_syntax
 
 let is_executable fullpath =
   try
@@ -18,8 +19,9 @@ let search_path executable_name =
 let exec command args =
   match search_path command with
   | Some path ->
-      Lwt_process.exec
-        (path, List.to_array (Stdlib.Filename.basename path :: args))
-      |> ignore;
+      let%bind _status =
+        Lwt_process.exec
+          (path, List.to_array (Stdlib.Filename.basename path :: args))
+      in
       Lwt.return_unit
   | None -> Lwt_io.printlf "%s: command not found" command
