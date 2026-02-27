@@ -18,7 +18,7 @@ let search_path executable_name =
 let exec command args =
   match search_path command with
   | Some path ->
-      Lwt_process.open_process_full
+      Lwt_process.exec
         (path, List.to_array (Stdlib.Filename.basename path :: args))
       |> ignore;
       Lwt.return_unit
