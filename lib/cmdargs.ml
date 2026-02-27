@@ -24,6 +24,8 @@ let rec scan state chars acc args =
     ->
       scan DoubleQuote rest (char :: acc) args
   | DoubleQuote, char :: rest -> scan DoubleQuote rest (char :: acc) args
+  | Normal, '>' :: rest | Normal, '1' :: '>' :: rest ->
+      scan Normal rest [] (">1" :: add_arg acc args)
   | Normal, '\'' :: '\'' :: rest -> scan Normal rest acc args
   | Normal, '\'' :: rest -> scan SingleQuote rest acc args
   | Normal, '"' :: '"' :: rest -> scan Normal rest acc args
