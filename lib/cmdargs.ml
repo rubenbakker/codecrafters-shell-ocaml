@@ -1,7 +1,7 @@
 open! Base
 open Lwt.Infix
 
-type t = { args : string list; redirect : string option }
+type t = { args : string list; stdout : string option; stderr : string option }
 [@@deriving sexp, compare, equal]
 
 type scanner_state_t = Normal | SingleQuote | DoubleQuote
@@ -43,19 +43,20 @@ let rec scan state chars acc args =
   | _, [] -> List.rev (if List.length acc > 0 then add_arg acc args else args)
 
 let prepare_args args =
-  let rec loop args acc redirect =
+  let rec loop args acc stdout stderr =
     match args with
-    | [] -> { args = List.rev acc; redirect }
-    | ">1" :: filename :: rest -> loop rest acc (Some filename)
-    | arg :: rest -> loop rest (arg :: acc) redirect
+    | [] -> { args = List.rev acc; stdout; stderr }
+    | ">1" :: filename :: rest -> loop rest acc (Some filename) stderr
+    | ">2" :: filename :: rest -> loop rest acc stdout (Some filename)
+    | arg :: rest -> loop rest (arg :: acc) stdout stderr
   in
-  loop args [] None
+  loop args [] None None
 
 let parse line =
   scan Normal (line |> String.strip |> String.to_array |> Array.to_list) [] []
   |> prepare_args
 
-let with_stdout filename =
+let with_output filename =
   match filename with
   | Some filename ->
       Lwt_unix.openfile filename [ O_CREAT; O_WRONLY; O_CLOEXEC ] 0

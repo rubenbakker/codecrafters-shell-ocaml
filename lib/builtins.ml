@@ -7,7 +7,7 @@ let echo (args : Cmdargs.t) =
   let output =
     Stdlib.Printf.sprintf "%s" (String.concat ~sep:" " (List.tl_exn args.args))
   in
-  match args.redirect with
+  match args.stdout with
   | Some filename ->
       Lwt_io.with_file filename ~mode:Lwt_io.Output (fun f ->
           Lwt_io.fprintl f output)
