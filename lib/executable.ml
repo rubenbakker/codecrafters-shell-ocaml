@@ -20,10 +20,12 @@ let search_path executable_name =
 let exec (args : Cmdargs.t) =
   let%bind stdout = Cmdargs.with_stdout args.redirect in
   let command = List.hd_exn args.args in
+  let args = List.tl_exn args.args in
   match search_path command with
   | Some path -> (
-      let%bind _ = Lwt_io.printlf "command: %s" path in
-      Lwt_process.exec ~stdout (path, List.to_array args.args) >>= function
+      Lwt_process.exec ~stdout
+        (path, List.to_array (Stdlib.Filename.basename path :: args))
+      >>= function
       | WEXITED 0 -> Lwt.return_unit
       | _ -> Lwt_io.printl "Error executing command.")
   | None -> Lwt_io.printlf "%s: command not found" command
