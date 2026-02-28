@@ -3,15 +3,19 @@ open Lwt.Infix
 
 let exit () = Unix._exit 0
 
-let echo (args : Cmdargs.t) =
-  let output =
-    Stdlib.Printf.sprintf "%s" (String.concat ~sep:" " (List.tl_exn args.args))
-  in
-  match List.filter_opt [ args.stdout; args.stderr ] |> List.hd with
+let output_string redirect output =
+  match redirect with
   | Some filename ->
       Lwt_io.with_file filename ~mode:Lwt_io.Output (fun f ->
-          Lwt_io.fprintl f output)
-  | None -> Lwt_io.printl output
+          Lwt_io.fprint f output)
+  | None -> Lwt_io.print output
+
+let echo (args : Cmdargs.t) =
+  let output =
+    Stdlib.Printf.sprintf "%s\n"
+      (String.concat ~sep:" " (List.tl_exn args.args))
+  in
+  output_string args.stdout output >>= fun _ -> output_string args.stderr ""
 
 let type_ arg =
   match arg with
