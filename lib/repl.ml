@@ -10,6 +10,7 @@ let setup_completion () =
   LNoise.set_completion_callback (fun line_so_far ln_completions ->
       List.filter Builtins.all ~f:(fun builtin ->
           String.is_prefix ~prefix:line_so_far builtin)
+      |> List.map ~f:(fun completion -> String.append completion " ")
       |> List.iter ~f:(LNoise.add_completion ln_completions));
   ()
 
