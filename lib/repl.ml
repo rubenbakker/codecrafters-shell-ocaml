@@ -17,7 +17,7 @@ let setup_completion () =
   ()
 
 let repl () =
-  setup_completion ();
+  (* setup_completion (); *)
   let rec go () =
     let open Lwt.Let_syntax in
     let%bind _ = Lwt_io.flush_all () in
