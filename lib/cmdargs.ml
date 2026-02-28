@@ -62,6 +62,8 @@ let prepare_args args =
         loop rest acc (Some { path = filename; append = true }) stderr
     | "2>" :: filename :: rest ->
         loop rest acc stdout (Some { path = filename; append = false })
+    | "2>>" :: filename :: rest ->
+        loop rest acc stdout (Some { path = filename; append = true })
     | arg :: rest -> loop rest (arg :: acc) stdout stderr
   in
   loop args [] None None
