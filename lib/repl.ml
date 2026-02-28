@@ -17,7 +17,7 @@ let setup_completion () =
   ()
 
 let repl () =
-  (* setup_completion (); *)
+  setup_completion ();
   let rec go () =
     let open Lwt.Let_syntax in
     let%bind _ = Lwt_io.flush_all () in
@@ -29,7 +29,7 @@ let repl () =
     | [ "type"; arg ] -> Builtins.type_ arg >>= go
     | [ "pwd" ] -> Builtins.pwd () >>= go
     | [ "cd"; path ] -> Builtins.cd path >>= go
-    | _command :: _rest -> Executable.exec args >>= go
+    | _command :: _rest -> Executable.exec args >>= Lwt_io.flush_all >>= go
     | _ -> Lwt_io.printlf "%s: command not found" line >>= go
   in
   go ()
