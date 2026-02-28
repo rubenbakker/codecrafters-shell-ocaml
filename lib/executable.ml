@@ -22,9 +22,8 @@ let exec (args : Cmdargs.t) =
   let command = List.hd_exn args.args in
   match search_path command with
   | Some path -> (
-      Lwt_process.exec ~stdout
-        (path, List.to_array (Stdlib.Filename.basename command :: args.args))
-      >>= function
+      let%bind _ = Lwt_io.printlf "command: %s" path in
+      Lwt_process.exec ~stdout (path, List.to_array args.args) >>= function
       | WEXITED 0 -> Lwt.return_unit
-      | _ -> Lwt_io.printf "Error executing command.")
+      | _ -> Lwt_io.printl "Error executing command.")
   | None -> Lwt_io.printlf "%s: command not found" command
