@@ -27,5 +27,5 @@ let exec (args : Cmdargs.t) =
         (path, List.to_array (Stdlib.Filename.basename path :: args))
       >>= function
       | WEXITED 0 -> Lwt.return_unit
-      | _ -> Lwt_io.printl "Error executing command.")
+      | _ -> Lwt.return_unit)
   | None -> Lwt_io.printlf "%s: command not found" command
