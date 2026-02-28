@@ -2,8 +2,13 @@
 
 (library
  (name lib)
- (libraries base lwt lwt.unix)
+ (libraries base lwt lwt.unix linenoise)
  (inline_tests)
  (preprocess
-  (pps ppx_assert ppx_inline_test ppx_expect ppx_sexp_conv ppx_compare ppx_let)))
-
+  (pps
+   ppx_assert
+   ppx_inline_test
+   ppx_expect
+   ppx_sexp_conv
+   ppx_compare
+   ppx_let)))

@@ -18,7 +18,7 @@
  (depends
   lwt
   base
-  readline
+  linenoise
   ppx_assert
   ppx_expect
   ppx_inline_test

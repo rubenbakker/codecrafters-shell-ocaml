@@ -19,6 +19,8 @@ let echo (args : Cmdargs.t) =
   in
   write_string args.stdout output >>= fun _ -> write_string args.stderr ""
 
+let all = [ "exit"; "echo"; "type"; "pwd" ]
+
 let type_ arg =
   match arg with
   | "exit" | "echo" | "type" | "pwd" ->
