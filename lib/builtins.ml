@@ -3,10 +3,12 @@ open Lwt.Infix
 
 let exit () = Unix._exit 0
 
-let output_string redirect output =
+let write_string (redirect : Cmdargs.redirect_t option) (output : string) =
   match redirect with
-  | Some filename ->
-      Lwt_io.with_file filename ~mode:Lwt_io.Output (fun f ->
+  | Some redirect ->
+      let path = redirect.path in
+      let%bind flags = Cmdargs.open_flags path redirect.append in
+      Lwt_io.with_file path ~mode:Lwt_io.Output ~flags (fun f ->
           Lwt_io.fprint f output)
   | None -> Lwt_io.print output
 
@@ -15,7 +17,7 @@ let echo (args : Cmdargs.t) =
     Stdlib.Printf.sprintf "%s\n"
       (String.concat ~sep:" " (List.tl_exn args.args))
   in
-  output_string args.stdout output >>= fun _ -> output_string args.stderr ""
+  write_string args.stdout output >>= fun _ -> write_string args.stderr ""
 
 let type_ arg =
   match arg with

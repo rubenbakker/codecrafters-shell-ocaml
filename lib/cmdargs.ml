@@ -1,7 +1,14 @@
 open! Base
 open Lwt.Infix
 
-type t = { args : string list; stdout : string option; stderr : string option }
+type redirect_t = { path : string; append : bool }
+[@@deriving sexp, compare, equal]
+
+type t = {
+  args : string list;
+  stdout : redirect_t option;
+  stderr : redirect_t option;
+}
 [@@deriving sexp, compare, equal]
 
 type scanner_state_t = Normal | SingleQuote | DoubleQuote
@@ -28,9 +35,11 @@ let rec scan state chars acc args =
     ->
       scan DoubleQuote rest (char :: acc) args
   | DoubleQuote, char :: rest -> scan DoubleQuote rest (char :: acc) args
+  | Normal, '>' :: '>' :: rest | Normal, '1' :: '>' :: '>' :: rest ->
+      scan Normal rest [] ("1>>" :: add_arg acc args)
   | Normal, '>' :: rest | Normal, '1' :: '>' :: rest ->
-      scan Normal rest [] (">1" :: add_arg acc args)
-  | Normal, '2' :: '>' :: rest -> scan Normal rest [] (">2" :: add_arg acc args)
+      scan Normal rest [] ("1>" :: add_arg acc args)
+  | Normal, '2' :: '>' :: rest -> scan Normal rest [] ("2>" :: add_arg acc args)
   | Normal, '\'' :: '\'' :: rest -> scan Normal rest acc args
   | Normal, '\'' :: rest -> scan SingleQuote rest acc args
   | Normal, '"' :: '"' :: rest -> scan Normal rest acc args
@@ -47,8 +56,12 @@ let prepare_args args =
   let rec loop args acc stdout stderr =
     match args with
     | [] -> { args = List.rev acc; stdout; stderr }
-    | ">1" :: filename :: rest -> loop rest acc (Some filename) stderr
-    | ">2" :: filename :: rest -> loop rest acc stdout (Some filename)
+    | "1>" :: filename :: rest ->
+        loop rest acc (Some { path = filename; append = false }) stderr
+    | "1>>" :: filename :: rest ->
+        loop rest acc (Some { path = filename; append = true }) stderr
+    | "2>" :: filename :: rest ->
+        loop rest acc stdout (Some { path = filename; append = false })
     | arg :: rest -> loop rest (arg :: acc) stdout stderr
   in
   loop args [] None None
@@ -57,9 +70,18 @@ let parse line =
   scan Normal (line |> String.strip |> String.to_array |> Array.to_list) [] []
   |> prepare_args
 
-let with_output filename =
-  match filename with
-  | Some filename ->
-      Lwt_unix.openfile filename [ O_CREAT; O_WRONLY; O_CLOEXEC ] 0
-      >|= fun fd -> `FD_move (Lwt_unix.unix_file_descr fd)
+let open_flags path append =
+  let%bind file_exits = Lwt_unix.file_exists path in
+  let open Lwt_unix in
+  (match (file_exits, append) with
+  | true, true -> [ O_APPEND; O_WRONLY; O_CLOEXEC ]
+  | _ -> [ O_CREAT; O_WRONLY; O_CLOEXEC ])
+  |> Lwt.return
+
+let with_output redirect =
+  match redirect with
+  | Some redirect ->
+      let%bind options = open_flags redirect.path redirect.append in
+      Lwt_unix.openfile redirect.path options 0 >|= fun fd ->
+      `FD_move (Lwt_unix.unix_file_descr fd)
   | None -> Lwt.return `Keep
