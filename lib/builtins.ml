@@ -9,8 +9,8 @@ let echo (args : Cmdargs.t) =
   in
   match args.redirect with
   | Some filename ->
-      Lwt_io.with_file filename ~mode:Lwt_io.Output (fun x ->
-          Lwt_io.write x output)
+      Lwt_io.with_file filename ~mode:Lwt_io.Output (fun f ->
+          Lwt_io.fprintl f output)
   | None -> Lwt_io.printl output
 
 let type_ arg =
