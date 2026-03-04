@@ -3,12 +3,8 @@ open Lwt.Infix
 open Lwt.Let_syntax
 
 let completion prefix =
-  let completions =
-    Builtins.all
-    |> List.filter ~f:(fun item -> String.is_prefix ~prefix item)
-    |> List.map ~f:(fun item -> item, ' ')
-  in
-  Readline.Custom completions
+  Readline.Custom
+    (List.concat [ Builtins.completions prefix; Executable.completions prefix ])
 ;;
 
 let user_input prompt =

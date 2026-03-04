@@ -45,3 +45,6 @@ let cd path =
   else Lwt_io.printlf "cd: %s: No such file or directory" path
 ;;
 
+let completions prefix =
+  all |> List.filter ~f:(String.is_prefix ~prefix) |> List.map ~f:(fun item -> item, ' ')
+;;
