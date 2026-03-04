@@ -2,7 +2,14 @@ open! Base
 open Lwt.Infix
 open Lwt.Let_syntax
 
-let completion str = Readline.Custom [ "exit", ' '; "echo", ' ' ]
+let completion prefix =
+  let completions =
+    Builtins.all
+    |> List.filter ~f:(fun item -> String.is_prefix ~prefix item)
+    |> List.map ~f:(fun item -> item, ' ')
+  in
+  Readline.Custom completions
+;;
 
 let user_input prompt =
   Lwt.return (Readline.readline ~prompt:"$ " ~completion_fun:completion ())
