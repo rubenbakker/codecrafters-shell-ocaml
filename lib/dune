@@ -2,7 +2,7 @@
 
 (library
  (name lib)
- (libraries base lwt lwt.unix linenoise)
+ (libraries base lwt lwt.unix readline)
  (inline_tests)
  (preprocess
   (pps
