@@ -11,6 +11,7 @@ type t =
   { args : string list
   ; stdout : redirect_t option
   ; stderr : redirect_t option
+  ; pipe : t option
   }
 [@@deriving sexp, compare, equal]
 
@@ -45,6 +46,7 @@ let rec scan state chars acc args =
     scan Normal rest [] ("1>" :: add_arg acc args)
   | Normal, '2' :: '>' :: '>' :: rest -> scan Normal rest [] ("2>>" :: add_arg acc args)
   | Normal, '2' :: '>' :: rest -> scan Normal rest [] ("2>" :: add_arg acc args)
+  | Normal, '|' :: rest -> scan Normal rest [] ("|" :: add_arg acc args)
   | Normal, '\'' :: '\'' :: rest -> scan Normal rest acc args
   | Normal, '\'' :: rest -> scan SingleQuote rest acc args
   | Normal, '"' :: '"' :: rest -> scan Normal rest acc args
@@ -58,21 +60,23 @@ let rec scan state chars acc args =
   | _, [] -> List.rev (if List.length acc > 0 then add_arg acc args else args)
 ;;
 
-let prepare_args args =
-  let rec loop args acc stdout stderr =
+let rec prepare_args args =
+  let rec loop args acc stdout stderr pipe =
     match args with
-    | [] -> { args = List.rev acc; stdout; stderr }
+    | [] -> { args = List.rev acc; stdout; stderr; pipe }
+    | "|" :: rest ->
+      { args = List.rev acc; stdout; stderr; pipe = Some (prepare_args rest) }
     | "1>" :: filename :: rest ->
-      loop rest acc (Some { path = filename; append = false }) stderr
+      loop rest acc (Some { path = filename; append = false }) stderr pipe
     | "1>>" :: filename :: rest ->
-      loop rest acc (Some { path = filename; append = true }) stderr
+      loop rest acc (Some { path = filename; append = true }) stderr pipe
     | "2>" :: filename :: rest ->
-      loop rest acc stdout (Some { path = filename; append = false })
+      loop rest acc stdout (Some { path = filename; append = false }) pipe
     | "2>>" :: filename :: rest ->
-      loop rest acc stdout (Some { path = filename; append = true })
-    | arg :: rest -> loop rest (arg :: acc) stdout stderr
+      loop rest acc stdout (Some { path = filename; append = true }) pipe
+    | arg :: rest -> loop rest (arg :: acc) stdout stderr pipe
   in
-  loop args [] None None
+  loop args [] None None None
 ;;
 
 let parse line =
