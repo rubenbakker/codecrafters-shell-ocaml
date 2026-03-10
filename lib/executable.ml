@@ -23,14 +23,18 @@ let search_path executable_name =
   |> List.hd
 ;;
 
-let exec (args : Cmdargs.t) =
-  let%bind stdout = Cmdargs.with_output args.stdout in
-  let%bind stderr = Cmdargs.with_output args.stderr in
+let rec create_pipe (args : Cmdargs.t) =
+  let in_ch, out_ch = Lwt_unix.pipe_out ~cloexec:true () in
+  let _fork_result = Lwt_unix.fork () in
+  exec args out_ch
+
+and exec_with_redirection (args : Cmdargs.t) stdin stdout stderr =
   let command = List.hd_exn args.args in
   let args = List.tl_exn args.args in
   match search_path command with
   | Some path ->
     Lwt_process.exec
+      ~stdin
       ~stdout
       ~stderr
       (path, List.to_array (Stdlib.Filename.basename path :: args))
@@ -38,6 +42,23 @@ let exec (args : Cmdargs.t) =
      | WEXITED 0 -> Lwt.return_unit
      | _ -> Lwt.return_unit)
   | None -> Lwt_io.printlf "%s: command not found" command
+
+and exec (args : Cmdargs.t) out_ch =
+  let stdin, stdout =
+    match args.stdout with
+    | Some (PipeStdout pipe_args) ->
+      let _, out_ch = Lwt_unix.pipe_out ~cloexec:true () in
+      match Lwt_unix.fork () with 
+      | 0 -> `FD_move (Lwt_unix.unix_file_descr in_ch), 
+      | n when 
+      `FD_move (Lwt_unix.unix_file_descr out_ch)
+    | Some (RedirectStdout redirect) ->
+      let%bind stdout = Cmdargs.with_output (Some redirect) in
+      `FD_keep, stdout
+    | None -> `Keep
+  in
+  let%bind stderr = Cmdargs.with_output args.stderr in
+  exec_with_redirection args stdin stdout stderr
 ;;
 
 let completions prefix : (string * char) list =

@@ -1,17 +1,19 @@
 open! Base
-open Lwt.Infix
-
-type redirect_t =
-  { path : string
-  ; append : bool
-  }
-[@@deriving sexp, compare, equal]
+open Lwt.Infix [@@deriving sexp, compare, equal]
 
 type t =
   { args : string list
-  ; stdout : redirect_t option
+  ; stdout : stdout_t option
   ; stderr : redirect_t option
-  ; pipe : t option
+  }
+
+and stdout_t =
+  | RedirectStdout of redirect_t
+  | PipeStdout of t
+
+and redirect_t =
+  { path : string
+  ; append : bool
   }
 [@@deriving sexp, compare, equal]
 
@@ -61,22 +63,22 @@ let rec scan state chars acc args =
 ;;
 
 let rec prepare_args args =
-  let rec loop args acc stdout stderr pipe =
+  let rec loop args acc stdout stderr =
     match args with
-    | [] -> { args = List.rev acc; stdout; stderr; pipe }
+    | [] -> { args = List.rev acc; stdout; stderr }
     | "|" :: rest ->
-      { args = List.rev acc; stdout; stderr; pipe = Some (prepare_args rest) }
+      { args = List.rev acc; stdout = Some (PipeStdout (prepare_args rest)); stderr }
     | "1>" :: filename :: rest ->
-      loop rest acc (Some { path = filename; append = false }) stderr pipe
+      loop rest acc (Some (RedirectStdout { path = filename; append = false })) stderr
     | "1>>" :: filename :: rest ->
-      loop rest acc (Some { path = filename; append = true }) stderr pipe
+      loop rest acc (Some (RedirectStdout { path = filename; append = true })) stderr
     | "2>" :: filename :: rest ->
-      loop rest acc stdout (Some { path = filename; append = false }) pipe
+      loop rest acc stdout (Some { path = filename; append = false })
     | "2>>" :: filename :: rest ->
-      loop rest acc stdout (Some { path = filename; append = true }) pipe
-    | arg :: rest -> loop rest (arg :: acc) stdout stderr pipe
+      loop rest acc stdout (Some { path = filename; append = true })
+    | arg :: rest -> loop rest (arg :: acc) stdout stderr
   in
-  loop args [] None None None
+  loop args [] None None
 ;;
 
 let parse line =
