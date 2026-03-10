@@ -10,6 +10,12 @@ let is_executable fullpath =
   | Unix.Unix_error _ -> false
 ;;
 
+type result_t = {
+  stdin: Lwt_process.redirection;
+  stdout: Lwt_process.redirection;
+  process_status: Unix.process_status
+}
+
 let path_list unit = Unix.getenv "PATH" |> String.split ~on:':'
 
 let search_path executable_name =
@@ -38,9 +44,7 @@ and exec_with_redirection (args : Cmdargs.t) stdin stdout stderr =
       ~stdout
       ~stderr
       (path, List.to_array (Stdlib.Filename.basename path :: args))
-    >>= (function
-     | WEXITED 0 -> Lwt.return_unit
-     | _ -> Lwt.return_unit)
+    >>= (function process_status -> Lwt.return { stdin; stdout;  process_status}
   | None -> Lwt_io.printlf "%s: command not found" command
 
 and exec (args : Cmdargs.t) out_ch =
