@@ -1,3 +1,5 @@
+let compare_file_descr left right = left = right
+
 open! Base
 open Lwt.Let_syntax
 open Lwt.Infix
@@ -29,45 +31,31 @@ let search_path executable_name =
   |> List.hd
 ;;
 
-let rec launch ?(input : Unix.file_descr option) (args : Cmdargs.t) =
-  let stdin =
-    match input with
-    | Some input -> `FD_move input
-    | None -> `Keep
-  in
-  let%bind stderr = Cmdargs.with_output args.stderr in
-  match args.stdout with
-  | Some (PipeStdout pipe_args) ->
-    let in_ch, out_ch = Lwt_unix.pipe ~cloexec:true () in
-    let out_ch = Lwt_unix.unix_file_descr out_ch in
-    (match Lwt_unix.fork () with
-     | 0 -> launch ~input:(Lwt_unix.unix_file_descr in_ch) pipe_args
-     | n when n > 0 -> exec_with_redirection args stdin (`FD_move out_ch) stderr
-     | _ -> exec_with_redirection args stdin (`FD_move out_ch) stderr)
-  | Some (RedirectStdout redirect) ->
-    let%bind stdout = Cmdargs.with_output (Some redirect) in
-    exec_with_redirection args stdin stdout stderr
-  | None -> exec_with_redirection args stdin `Keep stderr
-
-and exec_with_redirection
+let run_command
       (args : Cmdargs.t)
-      (stdin : Lwt_process.redirection)
-      (stdout : Lwt_process.redirection)
-      (stderr : Lwt_process.redirection)
+      (stdin : Unix.file_descr)
+      (stdout : Unix.file_descr)
+      (stderr : Unix.file_descr)
   =
   let command = List.hd_exn args.args in
-  let args = List.tl_exn args.args in
-  match search_path command with
-  | Some path ->
-    Lwt_process.exec
-      ~stdin
-      ~stdout
-      ~stderr
-      (path, List.to_array (Stdlib.Filename.basename path :: args))
-    >>= (function
-     | WEXITED 0 -> Lwt.return_unit
-     | _ -> Lwt.return_unit)
-  | None -> Lwt_io.printlf "%s: command not found" command
+  Unix.create_process command (List.to_array args.args) stdin stdout stderr
+;;
+
+let run_pipeline (pipeline : Cmdargs.t list) =
+  let rec loop prev_read pids = function
+    | [] -> pids
+    | [ args ] ->
+      let pid = run_command args prev_read Unix.stdout Unix.stderr in
+      pid :: pids
+    | args :: rest ->
+      let read_end, write_end = Unix.pipe () in
+      let pid = run_command args prev_read write_end Unix.stderr in
+      Unix.close write_end;
+      if compare_file_descr prev_read Unix.stdin then Unix.close prev_read;
+      loop read_end (pid :: pids) rest
+  in
+  let pids = loop Unix.stdin [] pipeline in
+  List.iter ~f:(fun pid -> ignore (Unix.waitpid [] pid)) pids
 ;;
 
 let completions prefix : (string * char) list =

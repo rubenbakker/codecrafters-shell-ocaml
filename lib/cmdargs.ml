@@ -3,7 +3,7 @@ open Lwt.Infix [@@deriving sexp, compare, equal]
 
 type t =
   { args : string list
-  ; stdout : stdout_t option
+  ; stdout : redirect_t option
   ; stderr : redirect_t option
   }
 
@@ -63,22 +63,23 @@ let rec scan state chars acc args =
 ;;
 
 let rec prepare_args args =
-  let rec loop args acc stdout stderr =
+  let rec loop args arg_acc pipeline_acc stdout stderr =
     match args with
-    | [] -> { args = List.rev acc; stdout; stderr }
+    | [] -> List.rev ({ args = List.rev arg_acc; stdout; stderr } :: pipeline_acc)
     | "|" :: rest ->
-      { args = List.rev acc; stdout = Some (PipeStdout (prepare_args rest)); stderr }
+      { args = List.rev arg_acc; stdout = None; stderr }
+      :: loop rest [] pipeline_acc None None
     | "1>" :: filename :: rest ->
-      loop rest acc (Some (RedirectStdout { path = filename; append = false })) stderr
+      loop rest arg_acc pipeline_acc (Some { path = filename; append = false }) stderr
     | "1>>" :: filename :: rest ->
-      loop rest acc (Some (RedirectStdout { path = filename; append = true })) stderr
+      loop rest arg_acc pipeline_acc (Some { path = filename; append = true }) stderr
     | "2>" :: filename :: rest ->
-      loop rest acc stdout (Some { path = filename; append = false })
+      loop rest arg_acc pipeline_acc stdout (Some { path = filename; append = false })
     | "2>>" :: filename :: rest ->
-      loop rest acc stdout (Some { path = filename; append = true })
-    | arg :: rest -> loop rest (arg :: acc) stdout stderr
+      loop rest arg_acc pipeline_acc stdout (Some { path = filename; append = true })
+    | arg :: rest -> loop rest (arg :: arg_acc) pipeline_acc stdout stderr
   in
-  loop args [] None None
+  loop args [] [] None None
 ;;
 
 let parse line =
@@ -95,11 +96,10 @@ let open_flags path append =
   |> Lwt.return
 ;;
 
-let with_output redirect =
+let with_output redirect default_value =
   match redirect with
   | Some redirect ->
     let%bind options = open_flags redirect.path redirect.append in
-    Lwt_unix.openfile redirect.path options 0
-    >|= fun fd -> `FD_move (Lwt_unix.unix_file_descr fd)
-  | None -> Lwt.return `Keep
+    Lwt_unix.openfile redirect.path options 0 >|= fun fd -> Lwt_unix.unix_file_descr fd
+  | None -> Lwt.return default_value
 ;;

@@ -19,13 +19,16 @@ let repl () =
     | None -> Lwt.return_unit
     | Some line ->
       let args = Cmdargs.parse line in
-      (match args.args with
+      let first_args = List.hd_exn args in
+      (match first_args.args with
        | "exit" :: [] -> Builtins.exit ()
-       | "echo" :: _rest -> Builtins.echo args >>= go
+       | "echo" :: _rest -> Builtins.echo first_args >>= go
        | [ "type"; arg ] -> Builtins.type_ arg >>= go
        | [ "pwd" ] -> Builtins.pwd () >>= go
        | [ "cd"; path ] -> Builtins.cd path >>= go
-       | _command :: _rest -> Executable.launch args >>= Lwt_io.flush_all >>= go
+       | _command :: _rest ->
+         Executable.run_pipeline args;
+         Lwt.return_unit >>= Lwt_io.flush_all >>= go
        | _ -> Lwt_io.printlf "%s: command not found" line >>= go)
   in
   go ()

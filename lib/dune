@@ -2,7 +2,7 @@
 
 (library
  (name lib)
- (libraries base lwt lwt.unix readline)
+ (libraries base lwt lwt.unix readline unix)
  (inline_tests)
  (preprocess
   (pps
