@@ -55,7 +55,6 @@ let run_pipeline (pipeline : Cmdargs.t list) =
       loop read_end (pid :: pids) rest
   in
   let pids = loop Unix.stdin [] pipeline in
-  List.map pids ~f:(fun x -> Stdlib.print_endline (Int.to_string_hum x)) |> ignore;
   Unix.waitpid [] (List.hd_exn pids) |> ignore;
   List.map pids ~f:Unix.kill |> ignore
 ;;
