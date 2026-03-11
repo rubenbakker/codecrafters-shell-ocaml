@@ -10,11 +10,11 @@ let is_executable fullpath =
   | Unix.Unix_error _ -> false
 ;;
 
-type result_t = {
-  stdin: Lwt_process.redirection;
-  stdout: Lwt_process.redirection;
-  process_status: Unix.process_status
-}
+type result_t =
+  { stdin : Lwt_process.redirection
+  ; stdout : Lwt_process.redirection
+  ; process_status : Unix.process_status
+  }
 
 let path_list unit = Unix.getenv "PATH" |> String.split ~on:':'
 
@@ -29,12 +29,32 @@ let search_path executable_name =
   |> List.hd
 ;;
 
-let rec create_pipe (args : Cmdargs.t) =
-  let in_ch, out_ch = Lwt_unix.pipe_out ~cloexec:true () in
-  let _fork_result = Lwt_unix.fork () in
-  exec args out_ch
+let rec launch ?(input : Unix.file_descr option) (args : Cmdargs.t) =
+  let stdin =
+    match input with
+    | Some input -> `FD_move input
+    | None -> `Keep
+  in
+  let%bind stderr = Cmdargs.with_output args.stderr in
+  match args.stdout with
+  | Some (PipeStdout pipe_args) ->
+    let in_ch, out_ch = Lwt_unix.pipe ~cloexec:true () in
+    let out_ch = Lwt_unix.unix_file_descr out_ch in
+    (match Lwt_unix.fork () with
+     | 0 -> launch ~input:(Lwt_unix.unix_file_descr in_ch) pipe_args
+     | n when n > 0 -> exec_with_redirection args stdin (`FD_move out_ch) stderr
+     | _ -> exec_with_redirection args stdin (`FD_move out_ch) stderr)
+  | Some (RedirectStdout redirect) ->
+    let%bind stdout = Cmdargs.with_output (Some redirect) in
+    exec_with_redirection args stdin stdout stderr
+  | None -> exec_with_redirection args stdin `Keep stderr
 
-and exec_with_redirection (args : Cmdargs.t) stdin stdout stderr =
+and exec_with_redirection
+      (args : Cmdargs.t)
+      (stdin : Lwt_process.redirection)
+      (stdout : Lwt_process.redirection)
+      (stderr : Lwt_process.redirection)
+  =
   let command = List.hd_exn args.args in
   let args = List.tl_exn args.args in
   match search_path command with
@@ -44,25 +64,10 @@ and exec_with_redirection (args : Cmdargs.t) stdin stdout stderr =
       ~stdout
       ~stderr
       (path, List.to_array (Stdlib.Filename.basename path :: args))
-    >>= (function process_status -> Lwt.return { stdin; stdout;  process_status}
+    >>= (function
+     | WEXITED 0 -> Lwt.return_unit
+     | _ -> Lwt.return_unit)
   | None -> Lwt_io.printlf "%s: command not found" command
-
-and exec (args : Cmdargs.t) out_ch =
-  let stdin, stdout =
-    match args.stdout with
-    | Some (PipeStdout pipe_args) ->
-      let _, out_ch = Lwt_unix.pipe_out ~cloexec:true () in
-      match Lwt_unix.fork () with 
-      | 0 -> `FD_move (Lwt_unix.unix_file_descr in_ch), 
-      | n when 
-      `FD_move (Lwt_unix.unix_file_descr out_ch)
-    | Some (RedirectStdout redirect) ->
-      let%bind stdout = Cmdargs.with_output (Some redirect) in
-      `FD_keep, stdout
-    | None -> `Keep
-  in
-  let%bind stderr = Cmdargs.with_output args.stderr in
-  exec_with_redirection args stdin stdout stderr
 ;;
 
 let completions prefix : (string * char) list =

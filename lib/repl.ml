@@ -25,7 +25,7 @@ let repl () =
        | [ "type"; arg ] -> Builtins.type_ arg >>= go
        | [ "pwd" ] -> Builtins.pwd () >>= go
        | [ "cd"; path ] -> Builtins.cd path >>= go
-       | _command :: _rest -> Executable.exec args >>= Lwt_io.flush_all >>= go
+       | _command :: _rest -> Executable.launch args >>= Lwt_io.flush_all >>= go
        | _ -> Lwt_io.printlf "%s: command not found" line >>= go)
   in
   go ()
