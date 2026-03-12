@@ -14,6 +14,7 @@ let repl () =
     match user_input "$ " with
     | None -> ()
     | Some line ->
+      Readline.add_history line;
       let args = Cmdargs.parse line in
       Executable.run_pipeline args history;
       loop (line :: history)
