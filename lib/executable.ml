@@ -36,7 +36,7 @@ let run_command
     let stderr = Cmdargs.with_output args.stderr stderr in
     Unix.create_process command (List.to_array args.args) stdin stdout stderr
   | None ->
-    Stdlib.Printf.printf "%s: command not found" command;
+    Stdlib.Printf.printf "%s: command not found\n" command;
     -1
 ;;
 
@@ -56,8 +56,11 @@ let run_pipeline (pipeline : Cmdargs.t list) =
       loop read_end (pid :: pids) rest
   in
   let pids = loop Unix.stdin [] pipeline in
-  Unix.waitpid [] (List.hd_exn pids) |> ignore;
-  List.map pids ~f:Unix.kill |> ignore
+  match List.hd_exn pids with
+  | -1 -> ()
+  | pid ->
+    Unix.waitpid [] pid |> ignore;
+    List.map pids ~f:Unix.kill |> ignore
 ;;
 
 let completions prefix : (string * char) list =
