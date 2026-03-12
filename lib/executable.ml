@@ -30,8 +30,14 @@ let run_command
       (stderr : Unix.file_descr)
   =
   let command = List.hd_exn args.args in
-  Stdlib.print_endline "1. GAGAGAGGUSUSU";
-  Unix.create_process command (List.to_array args.args) stdin stdout stderr
+  match command |> search_path with
+  | Some command ->
+    let stdout = Cmdargs.with_output args.stdout stdout in
+    let stderr = Cmdargs.with_output args.stderr stderr in
+    Unix.create_process command (List.to_array args.args) stdin stdout stderr
+  | None ->
+    Stdlib.Printf.printf "%s: command not found" command;
+    -1
 ;;
 
 let run_pipeline (pipeline : Cmdargs.t list) =
@@ -39,9 +45,7 @@ let run_pipeline (pipeline : Cmdargs.t list) =
   let rec loop prev_read pids = function
     | [] -> pids
     | args :: [] ->
-      let stdout = with_output args.stdout Unix.stdout in
-      let stderr = with_output args.stderr Unix.stderr in
-      let pid = run_command args prev_read stdout stderr in
+      let pid = run_command args prev_read Unix.stdout Unix.stderr in
       pid :: pids
     | args :: rest ->
       let read_end, write_end = Unix.pipe () in
