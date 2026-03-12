@@ -23,19 +23,27 @@ let search_path executable_name =
 
 let write_string fd str = Unix.write_substring fd str 0 (String.length str) |> ignore
 
-let echo args stdout =
+let echo_builtin args stdout =
   Stdlib.Printf.sprintf "%s\n" (String.concat ~sep:" " (List.tl_exn args))
   |> write_string stdout
 ;;
 
-let type_ args stdout =
+let history_builtin (history : string list) stdout =
+  "history" :: history
+  |> List.rev
+  |> List.mapi ~f:(fun idx line -> Stdlib.Printf.sprintf "%d %s\n" (idx + 1) line)
+  |> List.map ~f:(write_string stdout)
+  |> ignore
+;;
+
+let type_builtin args stdout =
   let arg =
     match args with
     | [ "type"; arg ] -> arg
     | _ -> "type"
   in
   match arg with
-  | "exit" | "echo" | "type" | "pwd" ->
+  | "exit" | "echo" | "type" | "pwd" | "history" ->
     Stdlib.Printf.sprintf "%s is a shell builtin\n" arg |> write_string stdout
   | _ ->
     (match search_path arg with
@@ -44,10 +52,13 @@ let type_ args stdout =
     |> write_string stdout
 ;;
 
-let pwd stdout = Stdlib.Printf.sprintf "%s\n" (Unix.getcwd ()) |> write_string stdout
-let exit () = Unix._exit 0
+let pwd_builtin stdout =
+  Stdlib.Printf.sprintf "%s\n" (Unix.getcwd ()) |> write_string stdout
+;;
 
-let cd args stdout =
+let exit_builtin () = Unix._exit 0
+
+let cd_builtin args stdout =
   let path =
     match args with
     | [ "cd"; path ] -> path
@@ -71,24 +82,28 @@ let run_command
       (stdin : Unix.file_descr)
       (stdout : Unix.file_descr)
       (stderr : Unix.file_descr)
+      (history : string list)
   =
   let stdout = Cmdargs.with_output args.stdout stdout in
   let stderr = Cmdargs.with_output args.stderr stderr in
   let command = List.hd_exn args.args in
   match command with
   | "echo" ->
-    echo args.args stdout;
+    echo_builtin args.args stdout;
     0
   | "type" ->
-    type_ args.args stdout;
+    type_builtin args.args stdout;
     0
   | "pwd" ->
-    pwd stdout;
+    pwd_builtin stdout;
     0
   | "cd" ->
-    cd args.args stdout;
+    cd_builtin args.args stdout;
     0
-  | "exit" -> exit ()
+  | "history" ->
+    history_builtin history stdout;
+    0
+  | "exit" -> exit_builtin ()
   | _ ->
     (match command |> search_path with
      | Some command ->
@@ -98,17 +113,17 @@ let run_command
        -1)
 ;;
 
-let run_pipeline (pipeline : Cmdargs.t list) =
+let run_pipeline (pipeline : Cmdargs.t list) (history : string list) =
   let open Cmdargs in
   let rec loop prev_read pids = function
     | [] -> pids
     | args :: [] ->
-      let pid = run_command args prev_read Unix.stdout Unix.stderr in
+      let pid = run_command args prev_read Unix.stdout Unix.stderr history in
       pid :: pids
     | args :: rest ->
       let read_end, write_end = Unix.pipe () in
       let stderr = with_output args.stderr Unix.stderr in
-      let pid = run_command args prev_read write_end stderr in
+      let pid = run_command args prev_read write_end stderr history in
       Unix.close write_end;
       if not (Unix_utils.equal_file_descr Unix.stdin prev_read) then Unix.close prev_read;
       loop read_end (pid :: pids) rest
