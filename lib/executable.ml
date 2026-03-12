@@ -37,6 +37,7 @@ let run_command
     Unix.create_process command (List.to_array args.args) stdin stdout stderr
   | None ->
     Stdlib.Printf.printf "%s: command not found\n" command;
+    Stdlib.flush_all ();
     -1
 ;;
 

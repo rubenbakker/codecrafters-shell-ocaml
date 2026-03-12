@@ -16,7 +16,7 @@ let echo (args : Cmdargs.t) =
   let output =
     Stdlib.Printf.sprintf "%s\n" (String.concat ~sep:" " (List.tl_exn args.args))
   in
-  write_string args.stdout output >>= fun _ -> write_string args.stdout ""
+  write_string args.stdout output >>= fun _ -> write_string args.stderr ""
 ;;
 
 let all = [ "exit"; "echo"; "type"; "pwd" ]
