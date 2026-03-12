@@ -30,6 +30,7 @@ let run_command
       (stderr : Unix.file_descr)
   =
   let command = List.hd_exn args.args in
+  Stdlib.print_endline "1. GAGAGAGGUSUSU";
   Unix.create_process command (List.to_array args.args) stdin stdout stderr
 ;;
 
