@@ -1,5 +1,4 @@
 open! Base
-open Lwt.Infix [@@deriving sexp, compare, equal]
 
 type t =
   { args : string list
@@ -95,6 +94,6 @@ let with_output redirect default_value =
   match redirect with
   | Some redirect ->
     let options = open_flags redirect.path redirect.append in
-    Unix.openfile redirect.path options 0
+    Unix.openfile redirect.path options 0o644
   | None -> default_value
 ;;

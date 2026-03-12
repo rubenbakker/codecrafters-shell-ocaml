@@ -1,5 +1,3 @@
-let compare_file_descr left right = left = right
-
 open! Base
 
 let is_executable fullpath =
@@ -37,7 +35,6 @@ let run_command
     Unix.create_process command (List.to_array args.args) stdin stdout stderr
   | None ->
     Stdlib.Printf.printf "%s: command not found\n" command;
-    Stdlib.flush_all ();
     -1
 ;;
 
@@ -53,7 +50,7 @@ let run_pipeline (pipeline : Cmdargs.t list) =
       let stderr = with_output args.stderr Unix.stderr in
       let pid = run_command args prev_read write_end stderr in
       Unix.close write_end;
-      if compare_file_descr prev_read Unix.stdin then Unix.close prev_read;
+      if not (Unix_utils.equal_file_descr Unix.stdin prev_read) then Unix.close prev_read;
       loop read_end (pid :: pids) rest
   in
   let pids = loop Unix.stdin [] pipeline in

@@ -9,9 +9,7 @@ homepage: "https://codecrafters.io"
 bug-reports: "https://github.com/codecrafters-io/build-your-own-shell/issues"
 depends: [
   "dune" {>= "3.21"}
-  "lwt"
   "base"
-  "linenoise"
   "readline"
   "ppx_assert"
   "ppx_expect"

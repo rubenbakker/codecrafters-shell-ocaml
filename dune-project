@@ -16,9 +16,7 @@
  (allow_empty true)
  (version 0.1)
  (depends
-  lwt
   base
-  linenoise
   readline
   ppx_assert
   ppx_expect

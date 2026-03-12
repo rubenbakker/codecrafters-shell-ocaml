@@ -1,35 +1,41 @@
 open! Base
-open Lwt.Infix
-open Lwt.Let_syntax
 
 let completion prefix =
   Readline.Custom
     (List.concat [ Builtins.completions prefix; Executable.completions prefix ])
 ;;
 
-let user_input prompt =
-  Lwt.return (Readline.readline ~prompt:"$ " ~completion_fun:completion ())
-;;
+let user_input prompt = Readline.readline ~prompt:"$ " ~completion_fun:completion ()
 
 let repl () =
   Readline.init ();
-  let rec go () =
-    let%bind _ = Lwt_io.flush_all () in
-    match%bind user_input "$ " with
-    | None -> Lwt.return_unit
+  let rec loop () =
+    let _ = Stdlib.flush_all () in
+    match user_input "$ " with
+    | None -> ()
     | Some line ->
       let args = Cmdargs.parse line in
       let first_args = List.hd_exn args in
       (match first_args.args with
        | "exit" :: [] -> Builtins.exit ()
-       | "echo" :: _rest -> Builtins.echo first_args >>= go
-       | [ "type"; arg ] -> Builtins.type_ arg >>= go
-       | [ "pwd" ] -> Builtins.pwd () >>= go
-       | [ "cd"; path ] -> Builtins.cd path >>= go
+       | "echo" :: _rest ->
+         Builtins.echo first_args;
+         loop ()
+       | [ "type"; arg ] ->
+         Builtins.type_ arg;
+         loop ()
+       | [ "pwd" ] ->
+         Builtins.pwd ();
+         loop ()
+       | [ "cd"; path ] ->
+         Builtins.cd path;
+         loop ()
        | _command :: _rest ->
          Executable.run_pipeline args;
-         Lwt.return_unit >>= Lwt_io.flush_all >>= go
-       | _ -> Lwt_io.printlf "%s: command not found" line >>= go)
+         loop ()
+       | _ ->
+         Stdlib.Printf.printf "%s: command not found\n" line;
+         loop ())
   in
-  go ()
+  loop ()
 ;;
