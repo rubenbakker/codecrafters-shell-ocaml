@@ -28,10 +28,20 @@ let echo_builtin args stdout =
   |> write_string stdout
 ;;
 
-let history_builtin (history : string list) stdout =
-  "history" :: history
-  |> List.rev
-  |> List.mapi ~f:(fun idx line -> Stdlib.Printf.sprintf "%d %s\n" (idx + 1) line)
+let history_builtin (args : string list) (history : string list) stdout =
+  let history = String.concat ~sep:" " args :: history |> List.rev in
+  let history_size = List.length history in
+  let entries_from_end =
+    match args with
+    | _ :: value :: _ -> Int.of_string value
+    | _ -> history_size
+  in
+  history
+  |> List.mapi ~f:(fun idx line ->
+    if history_size - idx <= entries_from_end
+    then Some (Stdlib.Printf.sprintf "    %d %s\n" (idx + 1) line)
+    else None)
+  |> List.filter_opt
   |> List.map ~f:(write_string stdout)
   |> ignore
 ;;
@@ -101,7 +111,7 @@ let run_command
     cd_builtin args.args stdout;
     0
   | "history" ->
-    history_builtin history stdout;
+    history_builtin args.args history stdout;
     0
   | "exit" -> exit_builtin ()
   | _ ->
