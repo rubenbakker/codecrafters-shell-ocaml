@@ -7,10 +7,6 @@ type t =
   ; stderr : redirect_t option
   }
 
-and stdout_t =
-  | RedirectStdout of redirect_t
-  | PipeStdout of t
-
 and redirect_t =
   { path : string
   ; append : bool
@@ -88,18 +84,17 @@ let parse line =
 ;;
 
 let open_flags path append =
-  let%bind file_exits = Lwt_unix.file_exists path in
-  let open Lwt_unix in
-  (match file_exits, append with
-   | true, true -> [ O_APPEND; O_WRONLY; O_CLOEXEC ]
-   | _ -> [ O_CREAT; O_WRONLY; O_CLOEXEC ])
-  |> Lwt.return
+  let file_exits = Stdlib.Sys.file_exists path in
+  let open Unix in
+  match file_exits, append with
+  | true, true -> [ O_APPEND; O_WRONLY; O_CLOEXEC ]
+  | _ -> [ O_CREAT; O_WRONLY; O_CLOEXEC ]
 ;;
 
 let with_output redirect default_value =
   match redirect with
   | Some redirect ->
-    let%bind options = open_flags redirect.path redirect.append in
-    Lwt_unix.openfile redirect.path options 0 >|= fun fd -> Lwt_unix.unix_file_descr fd
-  | None -> Lwt.return default_value
+    let options = open_flags redirect.path redirect.append in
+    Unix.openfile redirect.path options 0
+  | None -> default_value
 ;;

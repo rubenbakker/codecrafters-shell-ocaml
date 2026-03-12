@@ -1,8 +1,6 @@
 let compare_file_descr left right = left = right
 
 open! Base
-open Lwt.Let_syntax
-open Lwt.Infix
 
 let is_executable fullpath =
   try
@@ -11,12 +9,6 @@ let is_executable fullpath =
   with
   | Unix.Unix_error _ -> false
 ;;
-
-type result_t =
-  { stdin : Lwt_process.redirection
-  ; stdout : Lwt_process.redirection
-  ; process_status : Unix.process_status
-  }
 
 let path_list unit = Unix.getenv "PATH" |> String.split ~on:':'
 
@@ -42,14 +34,18 @@ let run_command
 ;;
 
 let run_pipeline (pipeline : Cmdargs.t list) =
+  let open Cmdargs in
   let rec loop prev_read pids = function
     | [] -> pids
-    | [ args ] ->
-      let pid = run_command args prev_read Unix.stdout Unix.stderr in
+    | args :: [] ->
+      let stdout = with_output args.stdout Unix.stdout in
+      let stderr = with_output args.stderr Unix.stderr in
+      let pid = run_command args prev_read stdout stderr in
       pid :: pids
     | args :: rest ->
       let read_end, write_end = Unix.pipe () in
-      let pid = run_command args prev_read write_end Unix.stderr in
+      let stderr = with_output args.stderr Unix.stderr in
+      let pid = run_command args prev_read write_end stderr in
       Unix.close write_end;
       if compare_file_descr prev_read Unix.stdin then Unix.close prev_read;
       loop read_end (pid :: pids) rest
