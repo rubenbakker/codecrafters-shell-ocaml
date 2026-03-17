@@ -43,6 +43,7 @@ let write_history_file path history =
     |> List.rev
     |> List.map ~f:(fun line ->
       Out_channel.output_string outch (String.concat ~sep:"" [ line; "\n" ])))
+  |> ignore
 ;;
 
 let print_history entries_from_end history stdout =
@@ -125,7 +126,7 @@ let run_command
     read_history_file path history;
     0
   | [ "history"; "-w"; path ] ->
-    write_history_file path history;
+    write_history_file path !history;
     0
   | "exit" :: [] -> exit_builtin ()
   | _ ->
