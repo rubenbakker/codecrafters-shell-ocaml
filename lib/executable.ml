@@ -46,6 +46,24 @@ let write_history_file path history =
   |> ignore
 ;;
 
+let write_history_file path history =
+  Out_channel.with_open_text path (fun outch ->
+    history
+    |> List.rev
+    |> List.map ~f:(fun line ->
+      Out_channel.output_string outch (String.concat ~sep:"" [ line; "\n" ])))
+  |> ignore
+;;
+
+let append_to_history_file path history =
+  let existing_lines =
+    In_channel.with_open_text path (fun inch -> In_channel.input_lines inch)
+    |> List.filter ~f:(fun x -> not (String.is_empty x))
+  in
+  let all_lines = List.concat [ existing_lines; List.rev history ] in
+  write_history_file path all_lines
+;;
+
 let print_history entries_from_end history stdout =
   let history_size = List.length history in
   let entries_from_end = Option.value entries_from_end ~default:history_size in
@@ -127,6 +145,9 @@ let run_command
     0
   | [ "history"; "-w"; path ] ->
     write_history_file path !history;
+    0
+  | [ "history"; "-a"; path ] ->
+    append_to_history_file path !history;
     0
   | "exit" :: [] -> exit_builtin ()
   | _ ->
