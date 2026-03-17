@@ -29,7 +29,10 @@ let echo_builtin args stdout =
 
 let read_history_file path history =
   In_channel.with_open_text path (fun inch -> In_channel.input_lines inch)
-  |> fun lines -> history := List.concat [ !history; lines ]
+  |> fun lines ->
+  history
+  := List.concat [ lines |> List.rev; !history ]
+     |> List.filter ~f:(fun x -> not (String.is_empty x))
 ;;
 
 let print_history entries_from_end history stdout =
