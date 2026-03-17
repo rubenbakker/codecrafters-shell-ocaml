@@ -97,7 +97,9 @@ let run_command
   | [ "history"; "-a"; path ] ->
     History.append_to_history_file path !history;
     0
-  | "exit" :: [] -> exit_builtin ()
+  | "exit" :: [] ->
+    History.write_with_histfile !history;
+    exit_builtin ()
   | _ ->
     (match command |> search_path with
      | Some command ->
