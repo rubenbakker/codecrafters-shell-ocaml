@@ -60,7 +60,19 @@ let append_to_history_file path history =
     In_channel.with_open_text path (fun inch -> In_channel.input_lines inch)
     |> List.filter ~f:(fun x -> not (String.is_empty x))
   in
-  let all_lines = List.concat [ history; List.rev existing_lines ] in
+  let rec filter_history lines acc =
+    match lines with
+    | line :: rest ->
+      (match String.split line ~on:' ' with
+       | [] -> filter_history rest acc
+       | "history" :: "-a" :: _ -> acc
+       | _ :: rest -> filter_history rest (line :: acc))
+    | [] -> acc
+  in
+  let new_history_lines =
+    filter_history (List.tl history |> Option.value ~default:[]) [] |> List.rev
+  in
+  let all_lines = List.concat [ new_history_lines; List.rev existing_lines ] in
   write_history_file path all_lines
 ;;
 
