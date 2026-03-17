@@ -66,7 +66,7 @@ let append_to_history_file path history =
       (match String.split line ~on:' ' with
        | [] -> filter_history rest acc
        | "history" :: "-a" :: _ when not (List.is_empty acc) -> acc
-       | _ :: rest -> filter_history rest (line :: acc))
+       | _ :: _ -> filter_history rest (line :: acc))
     | [] -> acc
   in
   let new_history_lines = filter_history history [] |> List.rev in
