@@ -10,18 +10,14 @@ let user_input prompt = Readline.readline ~prompt:"$ " ~completion_fun:completio
 let repl () =
   Readline.init ();
   let history = ref [] in
-  let add_history line =
-    Readline.add_history line;
-    history := line :: !history;
-    Stdlib.flush_all ()
-  in
+  History.init_with_histfile history;
   let rec loop () =
     let _ = Stdlib.flush_all () in
     match user_input "$ " with
     | None -> ()
     | Some line ->
       let args = Cmdargs.parse line in
-      add_history line;
+      History.add_history line history;
       Executable.run_pipeline args history;
       loop ()
   in
