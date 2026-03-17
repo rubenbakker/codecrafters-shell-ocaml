@@ -39,7 +39,7 @@ let read_history_file path history =
 
 let write_history_file path history =
   Out_channel.with_open_text path (fun outch ->
-    "" :: List.tl_exn history
+    history
     |> List.rev
     |> List.map ~f:(fun line ->
       Out_channel.output_string outch (String.concat ~sep:"" [ line; "\n" ])))
