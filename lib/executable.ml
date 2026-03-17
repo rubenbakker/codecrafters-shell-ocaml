@@ -31,14 +31,17 @@ let read_history_file path history =
   In_channel.with_open_text path (fun inch -> In_channel.input_lines inch)
   |> fun lines ->
   history
-  := List.concat [ lines |> List.rev; !history ]
-     |> List.filter ~f:(fun x -> not (String.is_empty x))
+  := List.concat
+       [ lines |> List.filter ~f:(fun x -> not (String.is_empty x)) |> List.rev
+       ; !history
+       ]
 ;;
 
 let print_history entries_from_end history stdout =
   let history_size = List.length history in
   let entries_from_end = Option.value entries_from_end ~default:history_size in
   history
+  |> List.rev
   |> List.mapi ~f:(fun idx line ->
     if history_size - idx <= entries_from_end
     then Some (Stdlib.Printf.sprintf "    %d %s\n" (idx + 1) line)
@@ -46,14 +49,6 @@ let print_history entries_from_end history stdout =
   |> List.filter_opt
   |> List.map ~f:(write_string stdout)
   |> ignore
-;;
-
-let history_builtin (args : string list) (history : string list ref) stdout =
-  let items = String.concat ~sep:" " args :: !history |> List.rev in
-  match args with
-  | [ "-r"; path ] -> read_history_file path history
-  | value :: _ -> print_history (Some (Int.of_string value)) items stdout
-  | _ -> print_history None items stdout
 ;;
 
 let type_builtin arg stdout =
@@ -112,8 +107,14 @@ let run_command
   | [ "cd"; path ] ->
     cd_builtin path stdout;
     0
-  | "history" :: rest ->
-    history_builtin rest history stdout;
+  | [ "history" ] ->
+    print_history None !history stdout;
+    0
+  | [ "history"; count ] ->
+    print_history (Some (Int.of_string count)) !history stdout;
+    0
+  | [ "history"; "-r"; path ] ->
+    read_history_file path history;
     0
   | "exit" :: [] -> exit_builtin ()
   | _ ->
