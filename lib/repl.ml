@@ -21,5 +21,6 @@ let repl () =
       Executable.run_pipeline args history;
       loop ()
   in
-  loop ()
+  loop ();
+  History.write_with_histfile !history
 ;;

@@ -76,3 +76,9 @@ let init_with_histfile history =
   | Some hf -> if Stdlib.Sys.file_exists hf then read_history_file hf history
   | None -> ()
 ;;
+
+let write_with_histfile history =
+  match histfile () with
+  | Some hf -> write_history_file hf history
+  | None -> ()
+;;
