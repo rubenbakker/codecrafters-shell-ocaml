@@ -1,6 +1,9 @@
 open Base
 
-let histfile unit = Unix.getenv "HISTFILE"
+let histfile unit =
+  try Some (Unix.getenv "HISTFILE") with
+  | Stdlib.Not_found -> None
+;;
 
 let read_history_file path history =
   In_channel.with_open_text path (fun inch -> In_channel.input_lines inch)
@@ -69,6 +72,7 @@ let add_history line history =
 ;;
 
 let init_with_histfile history =
-  let hf = histfile () in
-  if Stdlib.Sys.file_exists hf then read_history_file hf history
+  match histfile () with
+  | Some hf -> if Stdlib.Sys.file_exists hf then read_history_file hf history
+  | None -> ()
 ;;
