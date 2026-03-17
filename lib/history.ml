@@ -79,6 +79,6 @@ let init_with_histfile history =
 
 let write_with_histfile history =
   match histfile () with
-  | Some hf -> write_history_file hf history
+  | Some hf -> append_to_history_file hf history
   | None -> ()
 ;;
