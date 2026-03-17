@@ -65,13 +65,11 @@ let append_to_history_file path history =
     | line :: rest ->
       (match String.split line ~on:' ' with
        | [] -> filter_history rest acc
-       | "history" :: "-a" :: _ -> acc
+       | "history" :: "-a" :: _ when not (List.is_empty acc) -> acc
        | _ :: rest -> filter_history rest (line :: acc))
     | [] -> acc
   in
-  let new_history_lines =
-    filter_history (List.tl history |> Option.value ~default:[]) [] |> List.rev
-  in
+  let new_history_lines = filter_history history [] |> List.rev in
   let all_lines = List.concat [ new_history_lines; List.rev existing_lines ] in
   write_history_file path all_lines
 ;;
