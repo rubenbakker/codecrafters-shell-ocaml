@@ -37,6 +37,14 @@ let read_history_file path history =
        ]
 ;;
 
+let write_history_file path history =
+  Out_channel.with_open_text path (fun outch ->
+    "" :: history
+    |> List.rev
+    |> List.map ~f:(fun line ->
+      Out_channel.output_string outch (String.concat ~sep:"" [ line; "\n" ])))
+;;
+
 let print_history entries_from_end history stdout =
   let history_size = List.length history in
   let entries_from_end = Option.value entries_from_end ~default:history_size in
@@ -115,6 +123,9 @@ let run_command
     0
   | [ "history"; "-r"; path ] ->
     read_history_file path history;
+    0
+  | [ "history"; "-w"; path ] ->
+    write_history_file path history;
     0
   | "exit" :: [] -> exit_builtin ()
   | _ ->
