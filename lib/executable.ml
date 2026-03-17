@@ -60,7 +60,7 @@ let append_to_history_file path history =
     In_channel.with_open_text path (fun inch -> In_channel.input_lines inch)
     |> List.filter ~f:(fun x -> not (String.is_empty x))
   in
-  let all_lines = List.concat [ existing_lines; List.rev history ] in
+  let all_lines = List.concat [ history; List.rev existing_lines ] in
   write_history_file path all_lines
 ;;
 
