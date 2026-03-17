@@ -24,18 +24,17 @@ let search_path executable_name =
 let write_string fd str = Unix.write_substring fd str 0 (String.length str) |> ignore
 
 let echo_builtin args stdout =
-  Stdlib.Printf.sprintf "%s\n" (String.concat ~sep:" " (List.tl_exn args))
-  |> write_string stdout
+  Stdlib.Printf.sprintf "%s\n" (String.concat ~sep:" " args) |> write_string stdout
 ;;
 
-let history_builtin (args : string list) (history : string list) stdout =
-  let history = String.concat ~sep:" " args :: history |> List.rev in
+let read_history_file path history =
+  In_channel.with_open_text path (fun inch -> In_channel.input_lines inch)
+  |> fun lines -> history := List.concat [ !history; lines ]
+;;
+
+let print_history entries_from_end history stdout =
   let history_size = List.length history in
-  let entries_from_end =
-    match args with
-    | _ :: value :: _ -> Int.of_string value
-    | _ -> history_size
-  in
+  let entries_from_end = Option.value entries_from_end ~default:history_size in
   history
   |> List.mapi ~f:(fun idx line ->
     if history_size - idx <= entries_from_end
@@ -46,12 +45,15 @@ let history_builtin (args : string list) (history : string list) stdout =
   |> ignore
 ;;
 
-let type_builtin args stdout =
-  let arg =
-    match args with
-    | [ "type"; arg ] -> arg
-    | _ -> "type"
-  in
+let history_builtin (args : string list) (history : string list ref) stdout =
+  let items = String.concat ~sep:" " args :: !history |> List.rev in
+  match args with
+  | [ "-r"; path ] -> read_history_file path history
+  | value :: _ -> print_history (Some (Int.of_string value)) items stdout
+  | _ -> print_history None items stdout
+;;
+
+let type_builtin arg stdout =
   match arg with
   | "exit" | "echo" | "type" | "pwd" | "history" ->
     Stdlib.Printf.sprintf "%s is a shell builtin\n" arg |> write_string stdout
@@ -68,13 +70,7 @@ let pwd_builtin stdout =
 
 let exit_builtin () = Unix._exit 0
 
-let cd_builtin args stdout =
-  let path =
-    match args with
-    | [ "cd"; path ] -> path
-    | [ "cd" ] -> "~"
-    | _ -> "."
-  in
+let cd_builtin path stdout =
   let path =
     match path with
     | "~" -> Unix.getenv "HOME"
@@ -92,28 +88,31 @@ let run_command
       (stdin : Unix.file_descr)
       (stdout : Unix.file_descr)
       (stderr : Unix.file_descr)
-      (history : string list)
+      (history : string list ref)
   =
   let stdout = Cmdargs.with_output args.stdout stdout in
   let stderr = Cmdargs.with_output args.stderr stderr in
   let command = List.hd_exn args.args in
-  match command with
-  | "echo" ->
-    echo_builtin args.args stdout;
+  match args.args with
+  | "echo" :: rest ->
+    echo_builtin rest stdout;
     0
-  | "type" ->
-    type_builtin args.args stdout;
+  | [ "type"; arg ] ->
+    type_builtin arg stdout;
     0
-  | "pwd" ->
+  | "pwd" :: [] ->
     pwd_builtin stdout;
     0
-  | "cd" ->
-    cd_builtin args.args stdout;
+  | "cd" :: [] ->
+    cd_builtin "~" stdout;
     0
-  | "history" ->
-    history_builtin args.args history stdout;
+  | [ "cd"; path ] ->
+    cd_builtin path stdout;
     0
-  | "exit" -> exit_builtin ()
+  | "history" :: rest ->
+    history_builtin rest history stdout;
+    0
+  | "exit" :: [] -> exit_builtin ()
   | _ ->
     (match command |> search_path with
      | Some command ->
@@ -123,7 +122,7 @@ let run_command
        -1)
 ;;
 
-let run_pipeline (pipeline : Cmdargs.t list) (history : string list) =
+let run_pipeline (pipeline : Cmdargs.t list) (history : string list ref) =
   let open Cmdargs in
   let rec loop prev_read pids = function
     | [] -> pids
