@@ -97,3 +97,9 @@ let with_output redirect default_value =
     Unix.openfile redirect.path options 0o644
   | None -> default_value
 ;;
+
+let is_executable prefix =
+  match parse prefix |> List.last with
+  | None -> true
+  | Some arg -> List.length arg.args < 2
+;;

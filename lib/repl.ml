@@ -1,11 +1,11 @@
 open! Base
 
 let completion prefix =
-  match String.split ~on:' ' prefix |> List.length with
-  | 0 | 1 ->
+  if Cmdargs.is_executable prefix
+  then
     Readline.Custom
       (List.concat [ Builtins.completions prefix; Executable.completions prefix ])
-  | _ -> Readline.Filenames
+  else Readline.Filenames
 ;;
 
 let user_input prompt = Readline.readline ~prompt:"$ " ~completion_fun:completion ()
