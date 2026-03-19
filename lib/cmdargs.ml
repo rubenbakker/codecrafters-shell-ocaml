@@ -99,7 +99,9 @@ let with_output redirect default_value =
 ;;
 
 let is_executable prefix =
+  let the_end = String.suffix prefix 1 in
+  let ends_with_space = String.(the_end = " ") in
   match parse prefix |> List.last with
   | None -> true
-  | Some arg -> List.length arg.args < 2
+  | Some arg -> List.length arg.args < 2 && ends_with_space
 ;;
