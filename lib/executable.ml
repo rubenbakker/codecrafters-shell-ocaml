@@ -56,6 +56,9 @@ let cd_builtin path stdout =
     |> Unix_utils.write_string stdout
 ;;
 
+let default_result_code = 0
+let error_result_code = -1
+
 let run_command
       (args : Cmdargs.t)
       (stdin : Unix.file_descr)
@@ -69,34 +72,34 @@ let run_command
   match args.args with
   | "echo" :: rest ->
     echo_builtin rest stdout;
-    0
+    default_result_code
   | [ "type"; arg ] ->
     type_builtin arg stdout;
-    0
+    default_result_code
   | "pwd" :: [] ->
     pwd_builtin stdout;
-    0
+    default_result_code
   | "cd" :: [] ->
     cd_builtin "~" stdout;
-    0
+    default_result_code
   | [ "cd"; path ] ->
     cd_builtin path stdout;
-    0
+    default_result_code
   | [ "history" ] ->
     History.print_history None !history stdout;
-    0
+    default_result_code
   | [ "history"; count ] ->
     History.print_history (Some (Int.of_string count)) !history stdout;
-    0
+    default_result_code
   | [ "history"; "-r"; path ] ->
     History.read_history_file path history;
-    0
+    default_result_code
   | [ "history"; "-w"; path ] ->
     History.write_history_file path !history;
-    0
+    default_result_code
   | [ "history"; "-a"; path ] ->
     History.append_to_history_file path !history;
-    0
+    default_result_code
   | "exit" :: [] ->
     History.write_with_histfile !history;
     exit_builtin ()
@@ -106,7 +109,7 @@ let run_command
        Unix.create_process command (List.to_array args.args) stdin stdout stderr
      | None ->
        Stdlib.Printf.printf "%s: command not found\n" command;
-       -1)
+       error_result_code)
 ;;
 
 let run_pipeline (pipeline : Cmdargs.t list) (history : string list ref) =

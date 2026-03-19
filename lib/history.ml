@@ -29,8 +29,8 @@ let write_history_file path history =
     history
     |> List.rev
     |> List.map ~f:(fun line ->
-      Out_channel.output_string outch (String.concat ~sep:"" [ line; "\n" ])))
-  |> ignore
+      Out_channel.output_string outch (String.concat ~sep:"" [ line; "\n" ]));
+    0)
 ;;
 
 let append_to_history_file path history =
