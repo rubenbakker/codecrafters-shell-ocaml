@@ -103,5 +103,5 @@ let is_executable prefix =
   let ends_with_space = String.(the_end = " ") in
   match parse prefix |> List.last with
   | None -> true
-  | Some arg -> List.length arg.args < 2 && ends_with_space
+  | Some arg -> List.length arg.args < 2 && not ends_with_space
 ;;
