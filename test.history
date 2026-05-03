@@ -1,0 +1,7 @@
+ls -la
+grep -R *.ml
+ls -la
+pwd
+cat README.md
+history
+history -a test.history
