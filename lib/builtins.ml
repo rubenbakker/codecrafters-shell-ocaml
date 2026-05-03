@@ -19,15 +19,15 @@ let echo (args : Cmdargs.t) =
   write_string args.stdout output >>= fun _ -> write_string args.stderr ""
 ;;
 
-let all = [ "exit"; "echo"; "type"; "pwd"; "jobs" ]
+let all = [ "exit"; "echo"; "type"; "pwd" ]
 
 let type_ arg =
-  if List.mem all arg ~equal:String.equal
-  then Lwt_io.printlf "%s is a shell builtin" arg
-  else (
-    match Executable.search_path arg with
-    | Some path -> Lwt_io.printlf "%s is %s" arg path
-    | None -> Lwt_io.printlf "%s: not found" arg)
+  match arg with
+  | "exit" | "echo" | "type" | "pwd" -> Lwt_io.printlf "%s is a shell builtin" arg
+  | _ ->
+    (match Executable.search_path arg with
+     | Some path -> Lwt_io.printlf "%s is %s" arg path
+     | None -> Lwt_io.printlf "%s: not found" arg)
 ;;
 
 let pwd () = Lwt_io.printl (Unix.getcwd ())
@@ -45,4 +45,3 @@ let cd path =
   else Lwt_io.printlf "cd: %s: No such file or directory" path
 ;;
 
-let jobs () = Lwt_io.printlf ""
