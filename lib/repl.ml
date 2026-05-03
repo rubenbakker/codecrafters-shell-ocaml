@@ -29,6 +29,7 @@ let repl () =
     match args.args with
     | "exit" :: [] -> Builtins.exit ()
     | "echo" :: _rest -> Builtins.echo args >>= go
+    | "jobs" :: [] -> Builtins.jobs () >>= go
     | [ "type"; arg ] -> Builtins.type_ arg >>= go
     | [ "pwd" ] -> Builtins.pwd () >>= go
     | [ "cd"; path ] -> Builtins.cd path >>= go
