@@ -41,6 +41,7 @@ let pwd_builtin stdout =
   Stdlib.Printf.sprintf "%s\n" (Unix.getcwd ()) |> Unix_utils.write_string stdout
 ;;
 
+let jobs_builtin stdout = Stdlib.Printf.sprintf "" |> Unix_utils.write_string stdout
 let exit_builtin () = Unix._exit 0
 
 let cd_builtin path stdout =
@@ -78,6 +79,9 @@ let run_command
     default_result_code
   | "pwd" :: [] ->
     pwd_builtin stdout;
+    default_result_code
+  | "jobs" :: [] ->
+    jobs_builtin stdout;
     default_result_code
   | "cd" :: [] ->
     cd_builtin "~" stdout;
