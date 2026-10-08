@@ -1,6 +1,10 @@
 open! Base
 
 type t =
+  | Foreground of process_t list
+  | Background of process_t list
+
+and process_t =
   { args : string list
   ; stdout : redirect_t option
   ; stderr : redirect_t option
@@ -16,6 +20,12 @@ type scanner_state_t =
   | Normal
   | SingleQuote
   | DoubleQuote
+
+let process_list_of x =
+  match x with
+  | Foreground pl -> pl
+  | Background pl -> pl
+;;
 
 let rec scan state chars acc args =
   let is_whitespace_char char = Char.(char = ' ') in
@@ -77,8 +87,17 @@ let rec prepare_args args =
 ;;
 
 let parse line =
-  scan Normal (line |> String.strip |> String.to_array |> Array.to_list) [] []
-  |> prepare_args
+  let remove_background args =
+    match List.last args with
+    | Some "&" -> true, List.drop_last_exn args
+    | _ -> false, args
+  in
+  let args =
+    scan Normal (line |> String.strip |> String.to_array |> Array.to_list) [] []
+  in
+  let is_background, args = remove_background args in
+  let process_list = prepare_args args in
+  if is_background then Background process_list else Foreground process_list
 ;;
 
 let open_flags path append =
@@ -99,7 +118,7 @@ let with_output redirect default_value =
 
 let is_executable prefix =
   let the_end = String.suffix prefix 1 in
-  match parse prefix |> List.last with
+  match parse prefix |> process_list_of |> List.last with
   | None -> true
   | Some arg -> List.length arg.args < 2 && String.(the_end <> " ")
 ;;

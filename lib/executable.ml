@@ -61,7 +61,7 @@ let default_result_code = 0
 let error_result_code = -1
 
 let run_command
-      (args : Cmdargs.t)
+      (args : Cmdargs.process_t)
       (stdin : Unix.file_descr)
       (stdout : Unix.file_descr)
       (stderr : Unix.file_descr)
@@ -116,7 +116,7 @@ let run_command
        error_result_code)
 ;;
 
-let run_pipeline (pipeline : Cmdargs.t list) (history : string list ref) =
+let run_pipeline (pipeline : Cmdargs.process_t list) (history : string list ref) =
   let open Cmdargs in
   let rec loop prev_read pids = function
     | [] -> pids
