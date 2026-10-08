@@ -145,8 +145,11 @@ let run_process (process : Cmdargs.t) (history : string list ref) =
   | Cmdargs.Background pipeline ->
     (match Unix.fork () with
      | 0 ->
-       run_pipeline pipeline history;
-       Stdlib.exit 0
+       let first_process = List.hd_exn pipeline in
+       let command = List.hd_exn first_process.args in
+       (match command |> search_path with
+        | Some command -> Unix.execv command (List.to_array first_process.args)
+        | None -> Stdlib.Printf.printf "%s: command not found\n" command)
      | pid -> Stdlib.Printf.printf "[1] %d\n" pid)
 ;;
 
