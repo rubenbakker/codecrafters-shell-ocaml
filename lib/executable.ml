@@ -139,6 +139,17 @@ let run_pipeline (pipeline : Cmdargs.process_t list) (history : string list ref)
     List.map pids ~f:Unix.kill |> ignore
 ;;
 
+let run_process (process : Cmdargs.t) (history : string list ref) =
+  match process with
+  | Cmdargs.Foreground pipeline -> run_pipeline pipeline history
+  | Cmdargs.Background pipeline ->
+    (match Unix.fork () with
+     | 0 ->
+       run_pipeline pipeline history;
+       Stdlib.exit 0
+     | pid -> Stdlib.Printf.printf "[1] %d\n" pid)
+;;
+
 let completions prefix : (string * char) list =
   path_list ()
   |> List.filter ~f:Stdlib.Sys.file_exists

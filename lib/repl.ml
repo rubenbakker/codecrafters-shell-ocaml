@@ -19,9 +19,9 @@ let repl () =
     match user_input "$ " with
     | None -> ()
     | Some line ->
-      let args = Cmdargs.parse line |> Cmdargs.process_list_of in
+      let args = Cmdargs.parse line in
       History.add_history line history;
-      Executable.run_pipeline args history;
+      Executable.run_process args history;
       loop ()
   in
   loop ();
