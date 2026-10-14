@@ -1,5 +1,15 @@
 open! Base
 
+type running_job_state_t =
+  | RUNNING
+  | STOPPED
+
+type running_job_t =
+  { pid : int
+  ; state : running_job_state_t
+  ; pipeline : Cmdargs.process_t list
+  }
+
 let is_executable fullpath =
   try
     Unix.access fullpath [ Unix.X_OK ];
@@ -41,7 +51,14 @@ let pwd_builtin stdout =
   Stdlib.Printf.sprintf "%s\n" (Unix.getcwd ()) |> Unix_utils.write_string stdout
 ;;
 
-let jobs_builtin stdout = Stdlib.Printf.sprintf "" |> Unix_utils.write_string stdout
+let jobs_builtin stdout running_jobs =
+  List.rev running_jobs
+  |> List.iter ~f:(fun job ->
+    let cmdline = List.hd_exn job.pipeline |> Cmdargs.pipeline_as_string in
+    Stdlib.Printf.sprintf "[1]+  %-24s %s &\n" "Running" cmdline
+    |> Unix_utils.write_string stdout)
+;;
+
 let exit_builtin () = Unix._exit 0
 
 let cd_builtin path stdout =
@@ -66,6 +83,7 @@ let run_command
       (stdout : Unix.file_descr)
       (stderr : Unix.file_descr)
       (history : string list ref)
+      (running_jobs : running_job_t list)
   =
   let stdout = Cmdargs.with_output args.stdout stdout in
   let stderr = Cmdargs.with_output args.stderr stderr in
@@ -81,7 +99,7 @@ let run_command
     pwd_builtin stdout;
     default_result_code
   | "jobs" :: [] ->
-    jobs_builtin stdout;
+    jobs_builtin stdout running_jobs;
     default_result_code
   | "cd" :: [] ->
     cd_builtin "~" stdout;
@@ -116,17 +134,21 @@ let run_command
        error_result_code)
 ;;
 
-let run_pipeline (pipeline : Cmdargs.process_t list) (history : string list ref) =
+let run_pipeline
+      (pipeline : Cmdargs.process_t list)
+      (history : string list ref)
+      (running_jobs : running_job_t list)
+  =
   let open Cmdargs in
   let rec loop prev_read pids = function
     | [] -> pids
     | args :: [] ->
-      let pid = run_command args prev_read Unix.stdout Unix.stderr history in
+      let pid = run_command args prev_read Unix.stdout Unix.stderr history running_jobs in
       pid :: pids
     | args :: rest ->
       let read_end, write_end = Unix.pipe () in
       let stderr = with_output args.stderr Unix.stderr in
-      let pid = run_command args prev_read write_end stderr history in
+      let pid = run_command args prev_read write_end stderr history running_jobs in
       Unix.close write_end;
       if not (Unix_utils.equal_file_descr Unix.stdin prev_read) then Unix.close prev_read;
       loop read_end (pid :: pids) rest
@@ -139,9 +161,14 @@ let run_pipeline (pipeline : Cmdargs.process_t list) (history : string list ref)
     List.map pids ~f:Unix.kill |> ignore
 ;;
 
-let run_process (process : Cmdargs.t) (history : string list ref) =
+let run_process
+      (process : Cmdargs.t)
+      (history : string list ref)
+      (running_jobs : running_job_t list ref)
+  : unit
+  =
   match process with
-  | Cmdargs.Foreground pipeline -> run_pipeline pipeline history
+  | Cmdargs.Foreground pipeline -> run_pipeline pipeline history !running_jobs
   | Cmdargs.Background pipeline ->
     (match Unix.fork () with
      | 0 ->
@@ -150,7 +177,11 @@ let run_process (process : Cmdargs.t) (history : string list ref) =
        (match command |> search_path with
         | Some command -> Unix.execv command (List.to_array first_process.args)
         | None -> Stdlib.Printf.printf "%s: command not found\n" command)
-     | pid -> Stdlib.Printf.printf "[1] %d\n" pid)
+     | pid ->
+       Stdlib.Printf.printf "[1] %d\n" pid;
+       running_jobs
+       := { pid; state = RUNNING; pipeline = Cmdargs.process_list_of process }
+          :: !running_jobs)
 ;;
 
 let completions prefix : (string * char) list =

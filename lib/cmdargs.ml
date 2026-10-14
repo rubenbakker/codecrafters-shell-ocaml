@@ -116,6 +116,8 @@ let with_output redirect default_value =
   | None -> default_value
 ;;
 
+let pipeline_as_string pipeline = String.concat ~sep:" " pipeline.args
+
 let is_executable prefix =
   let the_end = String.suffix prefix 1 in
   match parse prefix |> process_list_of |> List.last with

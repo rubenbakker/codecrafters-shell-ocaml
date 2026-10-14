@@ -13,6 +13,7 @@ let user_input prompt = Readline.readline ~prompt:"$ " ~completion_fun:completio
 let repl () =
   Readline.init ();
   let history = ref [] in
+  let running_jobs = ref [] in
   History.init_with_histfile history;
   let rec loop () =
     let _ = Stdlib.flush_all () in
@@ -21,7 +22,7 @@ let repl () =
     | Some line ->
       let args = Cmdargs.parse line in
       History.add_history line history;
-      Executable.run_process args history;
+      Executable.run_process args history running_jobs;
       loop ()
   in
   loop ();
