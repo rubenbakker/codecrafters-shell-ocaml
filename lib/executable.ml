@@ -56,8 +56,9 @@ let jobs_builtin stdout running_jobs =
   List.rev running_jobs 
   |> List.iteri ~f:(fun idx job ->
     let cmdline = List.hd_exn job.pipeline |> Cmdargs.pipeline_as_string in
-    let indicator = (if job_count = idx + 1 then "+" else " ") in
-    Stdlib.Printf.sprintf "[%d]%s  %-24s %s &\n" (idx + 1) indicator "Running"  cmdline
+    let current_idx = idx + 1 in
+    let indicator = (if job_count = current_idx then "+" else (if job_count - 1 = current_idx then "-" else " ")) in
+    Stdlib.Printf.sprintf "[%d]%s  %-24s %s &\n" current_idx indicator "Running"  cmdline
     |> Unix_utils.write_string stdout)
 ;;
 
