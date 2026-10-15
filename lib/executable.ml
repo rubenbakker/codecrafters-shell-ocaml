@@ -184,7 +184,7 @@ let run_process
        (running_jobs
        := { pid; state = RUNNING; pipeline = Cmdargs.process_list_of process }
         :: !running_jobs;
-      Stdlib.Printf.printf "[%d] %d\n" (List.count !running_jobs ~f:(fun _ -> true)) pid))
+      Stdlib.Printf.printf "[%d] %d\n" (List.length !running_jobs) pid))
 ;;
 
 let completions prefix : (string * char) list =
