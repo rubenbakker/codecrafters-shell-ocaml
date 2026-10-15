@@ -52,9 +52,12 @@ let pwd_builtin stdout =
 ;;
 
 let jobs_builtin stdout running_jobs =
-  List.rev running_jobs |> List.iteri ~f:(fun idx job ->
+  let job_count = List.length running_jobs in
+  List.rev running_jobs 
+  |> List.iteri ~f:(fun idx job ->
     let cmdline = List.hd_exn job.pipeline |> Cmdargs.pipeline_as_string in
-    Stdlib.Printf.sprintf "[%d]+  %-24s %s &\n" (idx + 1) "Running"  cmdline
+    let indicator = (if job_count = idx + 1 then "+" else "-") in
+    Stdlib.Printf.sprintf "[%d]%s  %-24s %s &\n" (idx + 1) indicator "Running"  cmdline
     |> Unix_utils.write_string stdout)
 ;;
 
