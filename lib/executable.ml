@@ -177,10 +177,10 @@ let run_process
         | Some command -> Unix.execv command (List.to_array first_process.args)
         | None -> Stdlib.Printf.printf "%s: command not found\n" command)
      | pid ->
-       running_jobs
+       (running_jobs
        := { pid; state = RUNNING; pipeline = Cmdargs.process_list_of process }
-        :: !running_jobs);
-       Stdlib.Printf.printf "[%d] %d\n" (List.count !running_jobs ~f:(fun _ -> true)) pid;
+        :: !running_jobs;
+      Stdlib.Printf.printf "[%d] %d\n" (List.count !running_jobs ~f:(fun _ -> true)) pid))
 ;;
 
 let completions prefix : (string * char) list =
