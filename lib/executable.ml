@@ -51,15 +51,41 @@ let pwd_builtin stdout =
   Stdlib.Printf.sprintf "%s\n" (Unix.getcwd ()) |> Unix_utils.write_string stdout
 ;;
 
-let jobs_builtin stdout running_jobs =
-  let job_count = List.length running_jobs in
-  List.rev running_jobs 
-  |> List.iteri ~f:(fun idx job ->
+let exited_jobs (running_jobs : running_job_t list) : int list =
+  List.filter running_jobs ~f:(fun job ->
+    match Unix.waitpid [ Unix.WNOHANG ] job.pid with
+    | 0, _ -> false
+    | _, Unix.WEXITED _ -> true
+    | _, Unix.WSIGNALED _ -> true
+    | _, Unix.WSTOPPED _ -> true)
+  |> List.map ~f:(fun job -> job.pid)
+;;
+
+let jobs_builtin stdout (running_jobs : running_job_t list ref) =
+  let exited_job_pids = exited_jobs !running_jobs in
+  let job_count = List.length !running_jobs in
+  List.rev !running_jobs
+  |> List.mapi ~f:(fun idx job ->
     let cmdline = List.hd_exn job.pipeline |> Cmdargs.pipeline_as_string in
     let current_idx = idx + 1 in
-    let indicator = (if job_count = current_idx then "+" else (if job_count - 1 = current_idx then "-" else " ")) in
-    Stdlib.Printf.sprintf "[%d]%s  %-24s %s &\n" current_idx indicator "Running"  cmdline
+    let indicator =
+      if job_count = current_idx
+      then "+"
+      else if job_count - 1 = current_idx
+      then "-"
+      else " "
+    in
+    let status =
+      if List.mem exited_job_pids job.pid ~equal:(fun x y -> x = y)
+      then "Done"
+      else "Running"
+    in
+    Stdlib.Printf.sprintf "[%d]%s  %-24s %s &\n" current_idx indicator status cmdline
     |> Unix_utils.write_string stdout)
+  |> ignore;
+  running_jobs
+  := List.filter !running_jobs ~f:(fun job ->
+       List.mem exited_job_pids job.pid ~equal:(fun x y -> x = y) |> not)
 ;;
 
 let exit_builtin () = Unix._exit 0
@@ -86,7 +112,7 @@ let run_command
       (stdout : Unix.file_descr)
       (stderr : Unix.file_descr)
       (history : string list ref)
-      (running_jobs : running_job_t list)
+      (running_jobs : running_job_t list ref)
   =
   let stdout = Cmdargs.with_output args.stdout stdout in
   let stderr = Cmdargs.with_output args.stderr stderr in
@@ -140,7 +166,7 @@ let run_command
 let run_pipeline
       (pipeline : Cmdargs.process_t list)
       (history : string list ref)
-      (running_jobs : running_job_t list)
+      (running_jobs : running_job_t list ref)
   =
   let open Cmdargs in
   let rec loop prev_read pids = function
@@ -171,7 +197,7 @@ let run_process
   : unit
   =
   match process with
-  | Cmdargs.Foreground pipeline -> run_pipeline pipeline history !running_jobs
+  | Cmdargs.Foreground pipeline -> run_pipeline pipeline history running_jobs
   | Cmdargs.Background pipeline ->
     (match Unix.fork () with
      | 0 ->
@@ -181,10 +207,10 @@ let run_process
         | Some command -> Unix.execv command (List.to_array first_process.args)
         | None -> Stdlib.Printf.printf "%s: command not found\n" command)
      | pid ->
-       (running_jobs
+       running_jobs
        := { pid; state = RUNNING; pipeline = Cmdargs.process_list_of process }
-        :: !running_jobs;
-      Stdlib.Printf.printf "[%d] %d\n" (List.length !running_jobs) pid))
+          :: !running_jobs;
+       Stdlib.Printf.printf "[%d] %d\n" (List.length !running_jobs) pid)
 ;;
 
 let completions prefix : (string * char) list =
