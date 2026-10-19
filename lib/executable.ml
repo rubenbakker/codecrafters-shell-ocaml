@@ -63,7 +63,7 @@ let exited_jobs (running_jobs : running_job_t list) : int list =
 ;;
 
 let jobs_builtin stdout (running_jobs : running_job_t list ref) =
-  let job_count = List.length !running_jobs in
+  let job_count = List.length !running_jobs - 1 in
   let exited_job_pids = exited_jobs !running_jobs in
   List.rev !running_jobs
   |> List.mapi ~f:(fun current_idx job ->
