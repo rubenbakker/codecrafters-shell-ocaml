@@ -6,6 +6,7 @@ type running_job_state_t =
 
 type running_job_t =
   { pid : int
+  ; idx : int
   ; state : running_job_state_t
   ; pipeline : Cmdargs.process_t list
   }
@@ -62,12 +63,11 @@ let exited_jobs (running_jobs : running_job_t list) : int list =
 ;;
 
 let jobs_builtin stdout (running_jobs : running_job_t list ref) =
-  let exited_job_pids = exited_jobs !running_jobs in
   let job_count = List.length !running_jobs in
+  let exited_job_pids = exited_jobs !running_jobs in
   List.rev !running_jobs
-  |> List.mapi ~f:(fun idx job ->
+  |> List.mapi ~f:(fun current_idx job ->
     let cmdline = List.hd_exn job.pipeline |> Cmdargs.pipeline_as_string in
-    let current_idx = idx + 1 in
     let indicator =
       if job_count = current_idx
       then "+"
@@ -80,7 +80,7 @@ let jobs_builtin stdout (running_jobs : running_job_t list ref) =
       then "Done"
       else "Running"
     in
-    Stdlib.Printf.sprintf "[%d]%s  %-24s %s\n" current_idx indicator status cmdline
+    Stdlib.Printf.sprintf "[%d]%s  %-24s %s\n" job.idx indicator status cmdline
     |> Unix_utils.write_string stdout)
   |> ignore;
   running_jobs
@@ -208,7 +208,11 @@ let run_process
         | None -> Stdlib.Printf.printf "%s: command not found\n" command)
      | pid ->
        running_jobs
-       := { pid; state = RUNNING; pipeline = Cmdargs.process_list_of process }
+       := { pid
+          ; idx = List.length !running_jobs + 1
+          ; state = RUNNING
+          ; pipeline = Cmdargs.process_list_of process
+          }
           :: !running_jobs;
        Stdlib.Printf.printf "[%d] %d\n" (List.length !running_jobs) pid)
 ;;
