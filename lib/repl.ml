@@ -16,6 +16,7 @@ let repl () =
   let running_jobs = ref [] in
   History.init_with_histfile history;
   let rec loop () =
+    Executable.jobs_builtin Unix.stdout running_jobs false;
     let _ = Stdlib.flush_all () in
     match user_input "$ " with
     | None -> ()

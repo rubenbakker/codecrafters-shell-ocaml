@@ -62,7 +62,7 @@ let exited_jobs (running_jobs : running_job_t list) : int list =
   |> List.map ~f:(fun job -> job.pid)
 ;;
 
-let jobs_builtin stdout (running_jobs : running_job_t list ref) =
+let jobs_builtin stdout (running_jobs : running_job_t list ref) (show_running : bool) =
   let job_count = List.length !running_jobs - 1 in
   let exited_job_pids = exited_jobs !running_jobs in
   List.rev !running_jobs
@@ -80,8 +80,10 @@ let jobs_builtin stdout (running_jobs : running_job_t list ref) =
       then "Done"
       else "Running"
     in
-    Stdlib.Printf.sprintf "[%d]%s  %-24s %s\n" job.idx indicator status cmdline
-    |> Unix_utils.write_string stdout)
+    if String.(status = "Done") || show_running
+    then
+      Stdlib.Printf.sprintf "[%d]%s  %-24s %s\n" job.idx indicator status cmdline
+      |> Unix_utils.write_string stdout)
   |> ignore;
   running_jobs
   := List.filter !running_jobs ~f:(fun job ->
@@ -128,7 +130,7 @@ let run_command
     pwd_builtin stdout;
     default_result_code
   | "jobs" :: [] ->
-    jobs_builtin stdout running_jobs;
+    jobs_builtin stdout running_jobs true;
     default_result_code
   | "cd" :: [] ->
     cd_builtin "~" stdout;
