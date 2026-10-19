@@ -39,7 +39,7 @@ let echo_builtin args stdout =
 
 let type_builtin arg stdout =
   match arg with
-  | "exit" | "echo" | "type" | "pwd" | "history" | "jobs" ->
+  | "exit" | "echo" | "type" | "pwd" | "history" | "jobs" | "complete" ->
     Stdlib.Printf.sprintf "%s is a shell builtin\n" arg |> Unix_utils.write_string stdout
   | _ ->
     (match search_path arg with
