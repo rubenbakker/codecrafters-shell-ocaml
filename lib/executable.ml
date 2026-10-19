@@ -80,7 +80,7 @@ let jobs_builtin stdout (running_jobs : running_job_t list ref) =
       then "Done"
       else "Running"
     in
-    Stdlib.Printf.sprintf "[%d]%s  %-24s %s &\n" current_idx indicator status cmdline
+    Stdlib.Printf.sprintf "[%d]%s  %-24s %s\n" current_idx indicator status cmdline
     |> Unix_utils.write_string stdout)
   |> ignore;
   running_jobs
