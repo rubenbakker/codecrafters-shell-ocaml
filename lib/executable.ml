@@ -106,7 +106,7 @@ let cd_builtin path stdout =
 ;;
 
 let complete_builtin stdout command =
-  Stdlib.Printf.sprintf "complete: %s: no completion specification" command
+  Stdlib.Printf.sprintf "complete: %s: no completion specification\n" command
   |> Unix_utils.write_string stdout
 ;;
 
