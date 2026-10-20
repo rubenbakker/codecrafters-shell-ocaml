@@ -105,6 +105,11 @@ let cd_builtin path stdout =
     |> Unix_utils.write_string stdout
 ;;
 
+let complete_builtin stdout command =
+  Stdlib.Printf.sprintf "complete: %s: no completion specification" command
+  |> Unix_utils.write_string stdout
+;;
+
 let default_result_code = 0
 let error_result_code = -1
 
@@ -156,6 +161,9 @@ let run_command
   | "exit" :: [] ->
     History.write_with_histfile !history;
     exit_builtin ()
+  | "complete" :: [ "-p"; command ] ->
+    complete_builtin stdout command;
+    default_result_code
   | _ ->
     (match command |> search_path with
      | Some command ->
